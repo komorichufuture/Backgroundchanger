@@ -1222,11 +1222,24 @@
     
     function replayAnimation() {
       if (!selectedElement) return;
-      selectedElement.style.setProperty('--ae-state', 'paused');
-      void selectedElement.offsetWidth;
-      selectedElement.style.removeProperty('--ae-state');
+
+      // アニメが未設定なら何もしない（ユーザーの混乱防止）
+      const ae = selectedElement.getAttribute('data-ae');
+      if (!ae || ae === 'none') {
+        statusText.textContent = 'アニメが未設定です';
+        return;
+      }
+
+      // 強制的に「最初から」再生させる：一度 animation を none で上書き → 再フロー → 解除
+      // （play-state の切替だけだと、終了後に再スタートしないケースがある）
+      const prevInline = selectedElement.style.animation;
+      selectedElement.style.animation = 'none';
+      void selectedElement.offsetWidth; // reflow
+      selectedElement.style.animation = prevInline || '';
+
       statusText.textContent = 'アニメーションを再生しました';
     }
+
     
     // ===== Document Interaction =====
     function attachDocumentListeners(doc) {
