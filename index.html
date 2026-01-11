@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Background Color Editor (HTML loader)</title>
+  <style>
+    :root { color-scheme: dark; }
+    body{ margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:#0b0f14; color:#e8eef7; }
+    header{ padding:12px 14px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .wrap{ display:grid; grid-template-columns: 360px 1fr; height: calc(100vh - 56px); }
+    .panel{ padding:14px; border-right:1px solid rgba(255,255,255,.08); overflow:auto; }
+    .panel h2{ font-size:14px; margin:0 0 10px; opacity:.9; }
+    .row{ display:flex; align-items:center; gap:10px; margin:10px 0; }
+    .row label{ width:38px; opacity:.85; }
+    input[type="range"]{ width: 100%; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; }
+    .swatch{ width:44px; height:44px; border-radius:10px; border:1px solid rgba(255,255,255,.12); box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+    .btn{ background:#18212d; border:1px solid rgba(255,255,255,.12); color:#e8eef7; padding:8px 10px; border-radius:10px; cursor:pointer; }
+    .btn:disabled{ opacity:.45; cursor:not-allowed; }
+    .hint{ opacity:.7; font-size:12px; line-height:1.35; }
+    .viewer{ width:100%; height:100%; border:0; background:#000; }
+    .topnote{ font-size:12px; opacity:.75; }
+    .danger{ color:#ffb3b3; }
+    .ok{ color:#bfffd1; }
+  </style>
+</head>
+<body>
+  <header>
+    <input id="file" type="file" accept=".html,.htm,text/html" />
+    <button class="btn" id="export" disabled>変更後HTMLを書き出し</button>
+    <span class="topnote">方式：<span class="mono">&lt;style id="bg-editor-override"&gt;</span> を追加して背景を上書き</span>
+  </header>
+
+  <div class="wrap">
+    <aside class="panel">
+      <h2>背景色スライダー</h2>
+
+      <div class="row">
+        <div class="swatch" id="swatch"></div>
+        <div style="flex:1">
+          <div class="mono">HEX: <span id="hex">-</span></div>
+          <div class="mono">RGBA: <span id="rgba">-</span></div>
+          <div class="hint" id="detectMsg">HTMLを読み込むと、検出した背景色を初期値にします。</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>R</label>
+        <input id="r" type="range" min="0" max="255" value="5" />
+        <span class="mono" id="rv">5</span>
+      </div>
+      <div class="row">
+        <label>G</label>
+        <input id="g" type="range" min="0" max="255" value="10" />
+        <span class="mono" id="gv">10</span>
+      </div>
+      <div class="row">
+        <label>B</label>
+        <input id="b" type="range" min="0" max="255" value="18" />
+        <span class="mono" id="bv">18</span>
+      </div>
+      <div class="row">
+        <label>A</label>
+        <input id="a" type="range" min="0" max="100" value="100" />
+        <span class="mono" id="av">1.00</span>
+      </div>
+
+      <div class="row">
+        <button class="btn" id="pick">カラーピッカー</button>
+        <input id="colorPick" type="color" style="width:46px;height:34px;border:none;background:transparent;padding:0;" />
+      </div>
+
+      <div class="hint">
+        <div>・プレビューは iframe 内で背景を <b>!important</b> 上書きします。</div>
+        <div>・書き出しは元HTMLに上書きCSSを差し込みます（既存CSSは触らない）。</div>
+        <div class="danger">・外部CSS（&lt;link rel="stylesheet"&gt;）だけで背景指定してる場合は、検出が外れることがあります。</div>
+      </div>
+    </aside>
+
+    <main>
+      <iframe class="viewer" id="view" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+    </main>
+  </div>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+
+    const fileInput = el("file");
+    const iframe = el("view");
+    const exportBtn = el("export");
+
+    const r = el("r"), g = el("g"), b = el("b"), a = el("a");
+    const rv = el("rv"), gv = el("gv"), bv = el("bv"), av = el("av");
+    const hexOut = el("hex"), rgbaOut = el("rgba"), swatch = el("swatch");
+    const detectMsg = el("detectMsg");
+
+    const pickBtn = el("pick");
+    const colorPick = el("colorPick");
+
+    let originalHtml = "";
+    let lastFilename = "edited.html";
+
+    // ---------- color helpers ----------
+    const clamp = (v, mn, mx) => Math.min(mx, Math.max(mn, v));
+
+    function toHex2(n){
+      return clamp(n|0,0,255).toString(16).padStart(2,"0");
+    }
+    function rgbaString(R,G,B,A){
+      return `rgba(${R}, ${G}, ${B}, ${A.toFixed(3)})`;
+    }
+    function hexString(R,G,B){
+      return `#${toHex2(R)}${toHex2(G)}${toHex2(B)}`.toUpperCase();
+    }
+
+    function setUIFromRGBA(R,G,B,A){
+      r.value = R; g.value = G; b.value = B; a.value = Math.round(A*100);
+      syncUI();
+    }
+
+    function syncUI(){
+      const R = +r.value, G = +g.value, B = +b.value, A = (+a.value)/100;
+      rv.textContent = R; gv.textContent = G; bv.textContent = B; av.textContent = A.toFixed(2);
+
+      const hx = hexString(R,G,B);
+      const rgba = rgbaString(R,G,B,A);
+
+      hexOut.textContent = hx;
+      rgbaOut.textContent = rgba;
+      swatch.style.background = rgba;
+      colorPick.value = hx;
+
+      applyOverrideToPreview(R,G,B,A);
+    }
+
+    function applyOverrideToPreview(R,G,B,A){
+      const doc = iframe.contentDocument;
+      if(!doc) return;
+
+      const css = `html, body { background: ${rgbaString(R,G,B,A)} !important; }`;
+      let style = doc.getElementById("bg-editor-override");
+      if(!style){
+        style = doc.createElement("style");
+        style.id = "bg-editor-override";
+        style.textContent = css;
+        (doc.head || doc.documentElement).appendChild(style);
+      }else{
+        style.textContent = css;
+      }
+    }
+
+    // ---------- parse background from HTML (best-effort) ----------
+    function parseColorToRGBA(str){
+      if(!str) return null;
+      const s = str.trim().toLowerCase();
+
+      // hex: #rgb #rrggbb #rrggbbaa
+      let m = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
+      if(m){
+        const h = m[1];
+        if(h.length === 3){
+          const R = parseInt(h[0]+h[0],16);
+          const G = parseInt(h[1]+h[1],16);
+          const B = parseInt(h[2]+h[2],16);
+          return {R,G,B,A:1};
+        }
+        if(h.length === 6){
+          const R = parseInt(h.slice(0,2),16);
+          const G = parseInt(h.slice(2,4),16);
+          const B = parseInt(h.slice(4,6),16);
+          return {R,G,B,A:1};
+        }
+        if(h.length === 8){
+          const R = parseInt(h.slice(0,2),16);
+          const G = parseInt(h.slice(2,4),16);
+          const B = parseInt(h.slice(4,6),16);
+          const A = parseInt(h.slice(6,8),16)/255;
+          return {R,G,B,A};
+        }
+      }
+
+      // rgb/rgba
+      m = s.match(/^rgba?\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)\s*(?:,\s*([0-9.]+)\s*)?\)$/);
+      if(m){
+        const R = clamp(Math.round(+m[1]),0,255);
+        const G = clamp(Math.round(+m[2]),0,255);
+        const B = clamp(Math.round(+m[3]),0,255);
+        const A = m[4] == null ? 1 : clamp(+m[4],0,1);
+        return {R,G,B,A};
+      }
+
+      // hsl/hsla (minimal)
+      m = s.match(/^hsla?\(\s*([0-9.]+)\s*,\s*([0-9.]+)%\s*,\s*([0-9.]+)%\s*(?:,\s*([0-9.]+)\s*)?\)$/);
+      if(m){
+        let H = ((+m[1] % 360) + 360) % 360;
+        const S = clamp(+m[2]/100,0,1);
+        const L = clamp(+m[3]/100,0,1);
+        const A = m[4] == null ? 1 : clamp(+m[4],0,1);
+
+        // HSL -> RGB
+        const C = (1 - Math.abs(2*L - 1)) * S;
+        const X = C * (1 - Math.abs(((H/60) % 2) - 1));
+        const m0 = L - C/2;
+
+        let r1=0,g1=0,b1=0;
+        if(H < 60){ r1=C; g1=X; b1=0; }
+        else if(H < 120){ r1=X; g1=C; b1=0; }
+        else if(H < 180){ r1=0; g1=C; b1=X; }
+        else if(H < 240){ r1=0; g1=X; b1=C; }
+        else if(H < 300){ r1=X; g1=0; b1=C; }
+        else { r1=C; g1=0; b1=X; }
+
+        const R = clamp(Math.round((r1+m0)*255),0,255);
+        const G = clamp(Math.round((g1+m0)*255),0,255);
+        const B = clamp(Math.round((b1+m0)*255),0,255);
+        return {R,G,B,A};
+      }
+
+      return null;
+    }
+
+    function detectBackgroundColorFromHtml(html){
+      // Parse with DOMParser to grab <style> and inline style
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+
+      // 1) inline styles on html/body
+      const inlineTargets = [];
+      if(doc.documentElement?.getAttribute("style")) inlineTargets.push(doc.documentElement.getAttribute("style"));
+      if(doc.body?.getAttribute("style")) inlineTargets.push(doc.body.getAttribute("style"));
+
+      for(const st of inlineTargets){
+        const col = extractBgFromCssText(st);
+        const rgba = parseColorToRGBA(col);
+        if(rgba) return { rgba, why: "inline style" };
+      }
+
+      // 2) <style> blocks: try find body/html rules
+      const styles = [...doc.querySelectorAll("style")].map(s => s.textContent || "").join("\n");
+      const guess = extractBgFromStyles(styles);
+      if(guess){
+        const rgba = parseColorToRGBA(guess);
+        if(rgba) return { rgba, why: "<style> rule" };
+      }
+
+      return null;
+    }
+
+    function extractBgFromCssText(styleAttr){
+      // style="background: ...; background-color: ...;"
+      // prefer background-color if exists, else background
+      const s = styleAttr;
+      let m = s.match(/background-color\s*:\s*([^;]+)\s*;/i);
+      if(m) return m[1].trim();
+      m = s.match(/background\s*:\s*([^;]+)\s*;/i);
+      if(m) return m[1].trim().split(/\s+/)[0]; // best-effort
+      return null;
+    }
+
+    function extractBgFromStyles(css){
+      // Very rough: find rule blocks that mention "body" or "html, body"
+      // then grab background-color or background.
+      // This is not a full CSS parser. It's a pragmatic hack.
+      const candidates = [];
+
+      // normalize remove comments
+      const cleaned = css.replace(/\/\*[\s\S]*?\*\//g, " ");
+
+      // find blocks like "html, body { ... }" or "body { ... }"
+      const re = /(^|})\s*([^{]+)\{([^}]+)\}/g;
+      let m;
+      while((m = re.exec(cleaned))){
+        const selector = (m[2] || "").toLowerCase();
+        const bodyish = selector.includes("body") || selector.includes("html");
+        if(!bodyish) continue;
+
+        const block = m[3] || "";
+        // prefer background-color
+        let mc = block.match(/background-color\s*:\s*([^;]+)\s*;/i);
+        if(mc) candidates.push(mc[1].trim());
+        else{
+          mc = block.match(/background\s*:\s*([^;]+)\s*;/i);
+          if(mc) candidates.push(mc[1].trim().split(/\s+/)[0]);
+        }
+      }
+
+      return candidates[0] || null;
+    }
+
+    // ---------- load / preview / export ----------
+    function loadIntoIframe(html){
+      // Use srcdoc for simplicity; preserve original scripts/styles inside
+      iframe.srcdoc = html;
+    }
+
+    function injectOverrideIntoHtmlString(html, R,G,B,A){
+      const css = `\n<!-- bg-editor override -->\n<style id="bg-editor-override">html, body { background: ${rgbaString(R,G,B,A)} !important; }</style>\n`;
+      // Insert into <head> if exists; otherwise into start of document
+      if(/<head[^>]*>/i.test(html)){
+        if(/<style[^>]+id=["']bg-editor-override["'][^>]*>[\s\S]*?<\/style>/i.test(html)){
+          return html.replace(/<style[^>]+id=["']bg-editor-override["'][^>]*>[\s\S]*?<\/style>/i,
+                              `<style id="bg-editor-override">html, body { background: ${rgbaString(R,G,B,A)} !important; }</style>`);
+        }
+        return html.replace(/<head[^>]*>/i, (m) => m + css);
+      }
+      // no head: prepend
+      return css + html;
+    }
+
+    function downloadText(filename, text){
+      const blob = new Blob([text], {type:"text/html;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    fileInput.addEventListener("change", async (e) => {
+      const f = e.target.files?.[0];
+      if(!f) return;
+      lastFilename = f.name.replace(/\.(html?|HTML?)$/, "") + "_bg_edited.html";
+      originalHtml = await f.text();
+      loadIntoIframe(originalHtml);
+      exportBtn.disabled = false;
+
+      // Detect background
+      const det = detectBackgroundColorFromHtml(originalHtml);
+      if(det){
+        detectMsg.innerHTML = `検出: <span class="ok">${det.why}</span> から背景色を拾いました。`;
+        setUIFromRGBA(det.rgba.R, det.rgba.G, det.rgba.B, det.rgba.A);
+      }else{
+        detectMsg.innerHTML = `検出: <span class="danger">背景色が見つからなかった</span>ので、現在のスライダー値から開始します。`;
+        syncUI();
+      }
+
+      // after iframe loads, apply override
+      iframe.addEventListener("load", () => syncUI(), { once:true });
+    });
+
+    [r,g,b,a].forEach(inp => inp.addEventListener("input", syncUI));
+
+    pickBtn.addEventListener("click", () => colorPick.click());
+    colorPick.addEventListener("input", () => {
+      const rgba = parseColorToRGBA(colorPick.value);
+      if(rgba) setUIFromRGBA(rgba.R, rgba.G, rgba.B, (+a.value)/100);
+    });
+
+    exportBtn.addEventListener("click", () => {
+      if(!originalHtml) return;
+      const R = +r.value, G = +g.value, B = +b.value, A = (+a.value)/100;
+      const out = injectOverrideIntoHtmlString(originalHtml, R,G,B,A);
+      downloadText(lastFilename || "edited.html", out);
+    });
+
+    // init
+    syncUI();
+    loadIntoIframe("<!doctype html><html><head><meta charset='utf-8'><title>preview</title></head><body style='margin:0;min-height:100vh;display:grid;place-items:center;color:#fff;font-family:system-ui'>HTMLを読み込んでください</body></html>");
+  </script>
+</body>
+</html>
