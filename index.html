@@ -3,78 +3,529 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Background Color Editor (HTML loader)</title>
+  <title>HTML Visual Editor Pro - 統合版</title>
   <style>
-    :root { color-scheme: dark; }
-    body{ margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:#0b0f14; color:#e8eef7; }
-    header{ padding:12px 14px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .wrap{ display:grid; grid-template-columns: 360px 1fr; height: calc(100vh - 56px); }
-    .panel{ padding:14px; border-right:1px solid rgba(255,255,255,.08); overflow:auto; }
-    .panel h2{ font-size:14px; margin:0 0 10px; opacity:.9; }
-    .row{ display:flex; align-items:center; gap:10px; margin:10px 0; }
-    .row label{ width:38px; opacity:.85; }
-    input[type="range"]{ width: 100%; }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; }
-    .swatch{ width:44px; height:44px; border-radius:10px; border:1px solid rgba(255,255,255,.12); box-shadow: 0 6px 24px rgba(0,0,0,.35); }
-    .btn{ background:#18212d; border:1px solid rgba(255,255,255,.12); color:#e8eef7; padding:8px 10px; border-radius:10px; cursor:pointer; }
-    .btn:disabled{ opacity:.45; cursor:not-allowed; }
-    .hint{ opacity:.7; font-size:12px; line-height:1.35; }
-    .viewer{ width:100%; height:100%; border:0; background:#000; }
-    .topnote{ font-size:12px; opacity:.75; }
-    .danger{ color:#ffb3b3; }
-    .ok{ color:#bfffd1; }
+    :root { 
+      color-scheme: dark; 
+      --primary: #18212d;
+      --border: rgba(255,255,255,.08);
+      --border-light: rgba(255,255,255,.12);
+      --text: #e8eef7;
+      --text-dim: rgba(232, 238, 247, 0.85);
+      --bg: #0b0f14;
+      --success: #bfffd1;
+      --warning: #ffdd99;
+      --danger: #ffb3b3;
+      --info: #99ccff;
+      --accent: rgba(0, 200, 255, .85);
+    }
+
+    body { 
+      margin: 0; 
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; 
+      background: var(--bg); 
+      color: var(--text); 
+    }
+
+    header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .main-container {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      height: calc(100vh - 56px);
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.02);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 14px;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      background: rgba(255,255,255,.03);
+    }
+
+    .tab.active {
+      color: var(--text);
+      background: var(--primary);
+    }
+
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    .panels {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 14px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    .panel h2 {
+      font-size: 14px;
+      margin: 0 0 10px;
+      opacity: .9;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .row label {
+      min-width: 60px;
+      opacity: .85;
+      font-size: 13px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+    }
+
+    input[type="color"] {
+      width: 46px;
+      height: 34px;
+      border: none;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    select, input[type="text"] {
+      flex: 1;
+      background: #101822;
+      color: var(--text);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    .btn {
+      background: var(--primary);
+      border: 1px solid var(--border-light);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: rgba(24, 33, 45, 0.7);
+      border-color: rgba(255,255,255,.2);
+    }
+
+    .btn:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .btn.primary {
+      background: rgba(0, 200, 255, .15);
+      border-color: var(--accent);
+    }
+
+    .btn.primary:hover:not(:disabled) {
+      background: rgba(0, 200, 255, .25);
+    }
+
+    .mono {
+      font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+      font-size: 12px;
+    }
+
+    .swatch {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      border: 1px solid var(--border-light);
+      box-shadow: 0 6px 24px rgba(0,0,0,.35);
+    }
+
+    .viewer {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+    }
+
+    .hint {
+      opacity: .75;
+      font-size: 12px;
+      line-height: 1.4;
+      margin-top: 12px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border: 1px solid var(--border-light);
+      border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      font-size: 12px;
+    }
+
+    .status-bar {
+      padding: 8px 14px;
+      background: rgba(255,255,255,.02);
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border-light);
+    }
+
+    .indicator.active {
+      background: var(--success);
+    }
+
+    /* Colors for status messages */
+    .ok { color: var(--success); }
+    .warn { color: var(--warning); }
+    .danger { color: var(--danger); }
+    .info { color: var(--info); }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        height: 300px;
+      }
+    }
+
+    /* Animations for UI feedback */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .loading {
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Custom scrollbar */
+    .panel::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .panel::-webkit-scrollbar-track {
+      background: rgba(255,255,255,.02);
+    }
+
+    .panel::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,.1);
+      border-radius: 4px;
+    }
+
+    .panel::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,.15);
+    }
+
+    /* Icon styles */
+    .icon {
+      width: 16px;
+      height: 16px;
+      opacity: 0.7;
+    }
+
+    /* Grid layout for controls */
+    .cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .cols .row {
+      margin: 0;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 16px 0;
+    }
   </style>
 </head>
 <body>
   <header>
     <input id="file" type="file" accept=".html,.htm,text/html" />
-    <button class="btn" id="export" disabled>変更後HTMLを書き出し</button>
-    <span class="topnote">方式：<span class="mono">&lt;style id="bg-editor-override"&gt;</span> を追加して背景を上書き</span>
+    <button class="btn primary" id="export" disabled>
+      💾 変更後HTMLを書き出し
+    </button>
+    <span class="pill">
+      <span>📝 HTML Visual Editor Pro</span>
+    </span>
+    <span class="pill mono" style="margin-left: auto;">
+      クリックで要素選択 → 編集
+    </span>
   </header>
 
-  <div class="wrap">
-    <aside class="panel">
-      <h2>背景色スライダー</h2>
+  <div class="main-container">
+    <aside class="sidebar">
+      <div class="tabs">
+        <button class="tab active" data-panel="background">🎨 背景</button>
+        <button class="tab" data-panel="text">✏️ テキスト</button>
+        <button class="tab" data-panel="animation">✨ アニメ</button>
+      </div>
 
-      <div class="row">
-        <div class="swatch" id="swatch"></div>
-        <div style="flex:1">
-          <div class="mono">HEX: <span id="hex">-</span></div>
-          <div class="mono">RGBA: <span id="rgba">-</span></div>
-          <div class="hint" id="detectMsg">HTMLを読み込むと、検出した背景色を初期値にします。</div>
+      <div class="panels">
+        <!-- Background Panel -->
+        <div class="panel active" id="panel-background">
+          <h2>🎨 背景色エディタ</h2>
+          
+          <div class="row">
+            <div class="swatch" id="bg-swatch"></div>
+            <div style="flex:1">
+              <div class="mono">HEX: <span id="bg-hex">#0B0F14</span></div>
+              <div class="mono">RGBA: <span id="bg-rgba">rgba(11,15,20,1.000)</span></div>
+            </div>
+          </div>
+
+          <div class="row">
+            <label>R</label>
+            <input id="bg-r" type="range" min="0" max="255" value="11" />
+            <span class="mono" id="bg-rv">11</span>
+          </div>
+          <div class="row">
+            <label>G</label>
+            <input id="bg-g" type="range" min="0" max="255" value="15" />
+            <span class="mono" id="bg-gv">15</span>
+          </div>
+          <div class="row">
+            <label>B</label>
+            <input id="bg-b" type="range" min="0" max="255" value="20" />
+            <span class="mono" id="bg-bv">20</span>
+          </div>
+          <div class="row">
+            <label>A</label>
+            <input id="bg-a" type="range" min="0" max="100" value="100" />
+            <span class="mono" id="bg-av">1.00</span>
+          </div>
+
+          <div class="row">
+            <button class="btn" id="bg-pick">🎨 カラーピッカー</button>
+            <input id="bg-colorPick" type="color" value="#0B0F14" />
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="hint">
+            <div class="info">ℹ️ 背景色の検出と変更</div>
+            <div>・HTMLロード時に自動で背景色を検出</div>
+            <div>・<span class="mono">!important</span>で強制上書き</div>
+            <div>・既存のCSSは変更しません</div>
+          </div>
         </div>
-      </div>
 
-      <div class="row">
-        <label>R</label>
-        <input id="r" type="range" min="0" max="255" value="5" />
-        <span class="mono" id="rv">5</span>
-      </div>
-      <div class="row">
-        <label>G</label>
-        <input id="g" type="range" min="0" max="255" value="10" />
-        <span class="mono" id="gv">10</span>
-      </div>
-      <div class="row">
-        <label>B</label>
-        <input id="b" type="range" min="0" max="255" value="18" />
-        <span class="mono" id="bv">18</span>
-      </div>
-      <div class="row">
-        <label>A</label>
-        <input id="a" type="range" min="0" max="100" value="100" />
-        <span class="mono" id="av">1.00</span>
-      </div>
+        <!-- Text Panel -->
+        <div class="panel" id="panel-text">
+          <h2>✏️ テキストエディタ</h2>
+          
+          <div class="row">
+            <div style="flex:1">
+              <div class="mono">Tag: <span id="text-tag">-</span></div>
+              <div class="mono">Text: <span id="text-preview">-</span></div>
+              <div class="mono">Path: <span id="text-path">-</span></div>
+            </div>
+          </div>
 
-      <div class="row">
-        <button class="btn" id="pick">カラーピッカー</button>
-        <input id="colorPick" type="color" style="width:46px;height:34px;border:none;background:transparent;padding:0;" />
-      </div>
+          <div class="divider"></div>
 
-      <div class="hint">
-        <div>・プレビューは iframe 内で背景を <b>!important</b> 上書きします。</div>
-        <div>・書き出しは元HTMLに上書きCSSを差し込みます（既存CSSは触らない）。</div>
-        <div class="danger">・外部CSS（&lt;link rel="stylesheet"&gt;）だけで背景指定してる場合は、検出が外れることがあります。</div>
+          <h2>文字色</h2>
+          <div class="row">
+            <label>Color</label>
+            <input id="text-color" type="color" value="#E8EEF7" />
+            <span class="mono" id="text-hex">#E8EEF7</span>
+          </div>
+          <div class="row">
+            <label>Alpha</label>
+            <input id="text-alpha" type="range" min="0" max="100" value="100" />
+            <span class="mono" id="text-alphaV">1.00</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <h2>文字サイズ</h2>
+          <div class="row">
+            <label>Size</label>
+            <input id="text-size" type="range" min="8" max="96" value="16" />
+            <span class="mono" id="text-sizeV">16px</span>
+          </div>
+
+          <div class="row" style="margin-top:14px">
+            <button class="btn" id="text-reset" disabled>リセット</button>
+            <button class="btn" id="text-clear" disabled>選択解除</button>
+          </div>
+
+          <div class="hint">
+            <div class="info">ℹ️ テキスト編集</div>
+            <div>・要素をクリックして選択</div>
+            <div>・個別に色とサイズを変更</div>
+            <div>・インラインスタイルで適用</div>
+          </div>
+        </div>
+
+        <!-- Animation Panel -->
+        <div class="panel" id="panel-animation">
+          <h2>✨ アニメーションエディタ</h2>
+          
+          <div class="row">
+            <div style="flex:1">
+              <div class="mono">Selected: <span id="anim-tag">-</span></div>
+              <div class="mono">Text: <span id="anim-preview">-</span></div>
+              <div class="mono">Path: <span id="anim-path">-</span></div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <label>プリセット</label>
+            <select id="anim-preset" disabled>
+              <option value="none">なし（解除）</option>
+              <option value="fade-in">Fade In</option>
+              <option value="fade-up">Fade Up</option>
+              <option value="fade-down">Fade Down</option>
+              <option value="fade-left">Fade Left</option>
+              <option value="fade-right">Fade Right</option>
+              <option value="pop">Pop</option>
+              <option value="shake">Shake</option>
+              <option value="float">Float</option>
+              <option value="rotate">Rotate</option>
+              <option value="zoom">Zoom</option>
+            </select>
+          </div>
+
+          <div class="cols">
+            <div class="row">
+              <label>Duration</label>
+              <input id="anim-dur" type="range" min="0.05" max="3" step="0.05" value="0.8" disabled />
+            </div>
+            <div class="row">
+              <span class="mono" id="anim-durV">0.80s</span>
+            </div>
+          </div>
+
+          <div class="cols">
+            <div class="row">
+              <label>Delay</label>
+              <input id="anim-delay" type="range" min="0" max="3" step="0.05" value="0" disabled />
+            </div>
+            <div class="row">
+              <span class="mono" id="anim-delayV">0.00s</span>
+            </div>
+          </div>
+
+          <div class="row">
+            <label>Easing</label>
+            <select id="anim-ease" disabled>
+              <option value="ease">ease</option>
+              <option value="ease-out" selected>ease-out</option>
+              <option value="ease-in">ease-in</option>
+              <option value="ease-in-out">ease-in-out</option>
+              <option value="linear">linear</option>
+              <option value="cubic-bezier(.2,.8,.2,1)">snappy</option>
+              <option value="cubic-bezier(.34,1.56,.64,1)">overshoot</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <label>繰り返し</label>
+            <select id="anim-iter" disabled>
+              <option value="1" selected>1回</option>
+              <option value="2">2回</option>
+              <option value="3">3回</option>
+              <option value="infinite">infinite</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <button class="btn" id="anim-replay" disabled>▶️ 再生</button>
+            <button class="btn" id="anim-reset" disabled>リセット</button>
+            <button class="btn" id="anim-clear" disabled>選択解除</button>
+          </div>
+
+          <div class="hint">
+            <div class="info">ℹ️ アニメーション設定</div>
+            <div>・要素をクリックして選択</div>
+            <div>・プリセットから選択</div>
+            <div>・パラメータを細かく調整可能</div>
+          </div>
+        </div>
       </div>
     </aside>
 
@@ -83,233 +534,603 @@
     </main>
   </div>
 
-  <script>
-    const el = (id) => document.getElementById(id);
+  <div class="status-bar">
+    <div class="status-item">
+      <div class="indicator" id="status-loaded"></div>
+      <span id="status-text">HTMLを読み込んでください</span>
+    </div>
+    <div class="status-item" style="margin-left:auto">
+      <span class="mono" id="status-selection">選択: なし</span>
+    </div>
+  </div>
 
+  <script>
+    // ===== Utility Functions =====
+    const el = id => document.getElementById(id);
+    const clamp = (v, mn, mx) => Math.min(mx, Math.max(mn, v));
+    
+    // ===== Global State =====
+    let originalHtml = "";
+    let lastFilename = "edited.html";
+    let selectedElement = null;
+    let currentPanel = 'background';
+    
+    // ===== Element References =====
     const fileInput = el("file");
     const iframe = el("view");
     const exportBtn = el("export");
-
-    const r = el("r"), g = el("g"), b = el("b"), a = el("a");
-    const rv = el("rv"), gv = el("gv"), bv = el("bv"), av = el("av");
-    const hexOut = el("hex"), rgbaOut = el("rgba"), swatch = el("swatch");
-    const detectMsg = el("detectMsg");
-
-    const pickBtn = el("pick");
-    const colorPick = el("colorPick");
-
-    let originalHtml = "";
-    let lastFilename = "edited.html";
-
-    // ---------- color helpers ----------
-    const clamp = (v, mn, mx) => Math.min(mx, Math.max(mn, v));
-
-    function toHex2(n){
-      return clamp(n|0,0,255).toString(16).padStart(2,"0");
+    const statusText = el("status-text");
+    const statusIndicator = el("status-loaded");
+    const statusSelection = el("status-selection");
+    
+    // Tab elements
+    const tabs = document.querySelectorAll('.tab');
+    const panels = document.querySelectorAll('.panel');
+    
+    // Background controls
+    const bgR = el("bg-r"), bgG = el("bg-g"), bgB = el("bg-b"), bgA = el("bg-a");
+    const bgRv = el("bg-rv"), bgGv = el("bg-gv"), bgBv = el("bg-bv"), bgAv = el("bg-av");
+    const bgHex = el("bg-hex"), bgRgba = el("bg-rgba"), bgSwatch = el("bg-swatch");
+    const bgPickBtn = el("bg-pick"), bgColorPick = el("bg-colorPick");
+    
+    // Text controls
+    const textTag = el("text-tag"), textPreview = el("text-preview"), textPath = el("text-path");
+    const textColor = el("text-color"), textHex = el("text-hex");
+    const textAlpha = el("text-alpha"), textAlphaV = el("text-alphaV");
+    const textSize = el("text-size"), textSizeV = el("text-sizeV");
+    const textReset = el("text-reset"), textClear = el("text-clear");
+    
+    // Animation controls
+    const animTag = el("anim-tag"), animPreview = el("anim-preview"), animPath = el("anim-path");
+    const animPreset = el("anim-preset");
+    const animDur = el("anim-dur"), animDurV = el("anim-durV");
+    const animDelay = el("anim-delay"), animDelayV = el("anim-delayV");
+    const animEase = el("anim-ease"), animIter = el("anim-iter");
+    const animReplay = el("anim-replay"), animReset = el("anim-reset"), animClear = el("anim-clear");
+    
+    // ===== Tab Switching =====
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const panelId = tab.dataset.panel;
+        
+        tabs.forEach(t => t.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        
+        tab.classList.add('active');
+        el(`panel-${panelId}`).classList.add('active');
+        currentPanel = panelId;
+      });
+    });
+    
+    // ===== Color Helper Functions =====
+    function toHex2(n) {
+      return clamp(n | 0, 0, 255).toString(16).padStart(2, "0");
     }
-    function rgbaString(R,G,B,A){
+    
+    function rgbaString(R, G, B, A) {
       return `rgba(${R}, ${G}, ${B}, ${A.toFixed(3)})`;
     }
-    function hexString(R,G,B){
+    
+    function hexString(R, G, B) {
       return `#${toHex2(R)}${toHex2(G)}${toHex2(B)}`.toUpperCase();
     }
-
-    function setUIFromRGBA(R,G,B,A){
-      r.value = R; g.value = G; b.value = B; a.value = Math.round(A*100);
-      syncUI();
+    
+    function hexToRgb(hex) {
+      const h = hex.replace("#", "").trim();
+      return {
+        r: parseInt(h.slice(0, 2), 16),
+        g: parseInt(h.slice(2, 4), 16),
+        b: parseInt(h.slice(4, 6), 16)
+      };
     }
-
-    function syncUI(){
-      const R = +r.value, G = +g.value, B = +b.value, A = (+a.value)/100;
-      rv.textContent = R; gv.textContent = G; bv.textContent = B; av.textContent = A.toFixed(2);
-
-      const hx = hexString(R,G,B);
-      const rgba = rgbaString(R,G,B,A);
-
-      hexOut.textContent = hx;
-      rgbaOut.textContent = rgba;
-      swatch.style.background = rgba;
-      colorPick.value = hx;
-
-      applyOverrideToPreview(R,G,B,A);
-    }
-
-    function applyOverrideToPreview(R,G,B,A){
-      const doc = iframe.contentDocument;
-      if(!doc) return;
-
-      const css = `html, body { background: ${rgbaString(R,G,B,A)} !important; }`;
-      let style = doc.getElementById("bg-editor-override");
-      if(!style){
-        style = doc.createElement("style");
-        style.id = "bg-editor-override";
-        style.textContent = css;
-        (doc.head || doc.documentElement).appendChild(style);
-      }else{
-        style.textContent = css;
-      }
-    }
-
-    // ---------- parse background from HTML (best-effort) ----------
-    function parseColorToRGBA(str){
-      if(!str) return null;
+    
+    function parseColorToRGBA(str) {
+      if (!str) return null;
       const s = str.trim().toLowerCase();
-
-      // hex: #rgb #rrggbb #rrggbbaa
-      let m = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
-      if(m){
+      
+      // hex: #rgb #rrggbb
+      let m = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+      if (m) {
         const h = m[1];
-        if(h.length === 3){
-          const R = parseInt(h[0]+h[0],16);
-          const G = parseInt(h[1]+h[1],16);
-          const B = parseInt(h[2]+h[2],16);
-          return {R,G,B,A:1};
+        if (h.length === 3) {
+          const R = parseInt(h[0] + h[0], 16);
+          const G = parseInt(h[1] + h[1], 16);
+          const B = parseInt(h[2] + h[2], 16);
+          return { R, G, B, A: 1 };
         }
-        if(h.length === 6){
-          const R = parseInt(h.slice(0,2),16);
-          const G = parseInt(h.slice(2,4),16);
-          const B = parseInt(h.slice(4,6),16);
-          return {R,G,B,A:1};
-        }
-        if(h.length === 8){
-          const R = parseInt(h.slice(0,2),16);
-          const G = parseInt(h.slice(2,4),16);
-          const B = parseInt(h.slice(4,6),16);
-          const A = parseInt(h.slice(6,8),16)/255;
-          return {R,G,B,A};
+        if (h.length === 6) {
+          const R = parseInt(h.slice(0, 2), 16);
+          const G = parseInt(h.slice(2, 4), 16);
+          const B = parseInt(h.slice(4, 6), 16);
+          return { R, G, B, A: 1 };
         }
       }
-
+      
       // rgb/rgba
       m = s.match(/^rgba?\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)\s*(?:,\s*([0-9.]+)\s*)?\)$/);
-      if(m){
-        const R = clamp(Math.round(+m[1]),0,255);
-        const G = clamp(Math.round(+m[2]),0,255);
-        const B = clamp(Math.round(+m[3]),0,255);
-        const A = m[4] == null ? 1 : clamp(+m[4],0,1);
-        return {R,G,B,A};
+      if (m) {
+        const R = clamp(Math.round(+m[1]), 0, 255);
+        const G = clamp(Math.round(+m[2]), 0, 255);
+        const B = clamp(Math.round(+m[3]), 0, 255);
+        const A = m[4] == null ? 1 : clamp(+m[4], 0, 1);
+        return { R, G, B, A };
       }
-
-      // hsl/hsla (minimal)
-      m = s.match(/^hsla?\(\s*([0-9.]+)\s*,\s*([0-9.]+)%\s*,\s*([0-9.]+)%\s*(?:,\s*([0-9.]+)\s*)?\)$/);
-      if(m){
-        let H = ((+m[1] % 360) + 360) % 360;
-        const S = clamp(+m[2]/100,0,1);
-        const L = clamp(+m[3]/100,0,1);
-        const A = m[4] == null ? 1 : clamp(+m[4],0,1);
-
-        // HSL -> RGB
-        const C = (1 - Math.abs(2*L - 1)) * S;
-        const X = C * (1 - Math.abs(((H/60) % 2) - 1));
-        const m0 = L - C/2;
-
-        let r1=0,g1=0,b1=0;
-        if(H < 60){ r1=C; g1=X; b1=0; }
-        else if(H < 120){ r1=X; g1=C; b1=0; }
-        else if(H < 180){ r1=0; g1=C; b1=X; }
-        else if(H < 240){ r1=0; g1=X; b1=C; }
-        else if(H < 300){ r1=X; g1=0; b1=C; }
-        else { r1=C; g1=0; b1=X; }
-
-        const R = clamp(Math.round((r1+m0)*255),0,255);
-        const G = clamp(Math.round((g1+m0)*255),0,255);
-        const B = clamp(Math.round((b1+m0)*255),0,255);
-        return {R,G,B,A};
-      }
-
+      
       return null;
     }
-
-    function detectBackgroundColorFromHtml(html){
-      // Parse with DOMParser to grab <style> and inline style
+    
+    // ===== Background Functions =====
+    function syncBackgroundUI() {
+      const R = +bgR.value, G = +bgG.value, B = +bgB.value, A = (+bgA.value) / 100;
+      bgRv.textContent = R;
+      bgGv.textContent = G;
+      bgBv.textContent = B;
+      bgAv.textContent = A.toFixed(2);
+      
+      const hx = hexString(R, G, B);
+      const rgba = rgbaString(R, G, B, A);
+      
+      bgHex.textContent = hx;
+      bgRgba.textContent = rgba;
+      bgSwatch.style.background = rgba;
+      bgColorPick.value = hx;
+      
+      applyBackgroundToPreview(R, G, B, A);
+    }
+    
+    function applyBackgroundToPreview(R, G, B, A) {
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+      
+      const css = `html, body { background: ${rgbaString(R, G, B, A)} !important; }`;
+      let style = doc.getElementById("integrated-bg-override");
+      if (!style) {
+        style = doc.createElement("style");
+        style.id = "integrated-bg-override";
+        style.textContent = css;
+        (doc.head || doc.documentElement).appendChild(style);
+      } else {
+        style.textContent = css;
+      }
+    }
+    
+    function detectBackgroundColor(html) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, "text/html");
-
-      // 1) inline styles on html/body
-      const inlineTargets = [];
-      if(doc.documentElement?.getAttribute("style")) inlineTargets.push(doc.documentElement.getAttribute("style"));
-      if(doc.body?.getAttribute("style")) inlineTargets.push(doc.body.getAttribute("style"));
-
-      for(const st of inlineTargets){
-        const col = extractBgFromCssText(st);
-        const rgba = parseColorToRGBA(col);
-        if(rgba) return { rgba, why: "inline style" };
-      }
-
-      // 2) <style> blocks: try find body/html rules
-      const styles = [...doc.querySelectorAll("style")].map(s => s.textContent || "").join("\n");
-      const guess = extractBgFromStyles(styles);
-      if(guess){
-        const rgba = parseColorToRGBA(guess);
-        if(rgba) return { rgba, why: "<style> rule" };
-      }
-
-      return null;
-    }
-
-    function extractBgFromCssText(styleAttr){
-      // style="background: ...; background-color: ...;"
-      // prefer background-color if exists, else background
-      const s = styleAttr;
-      let m = s.match(/background-color\s*:\s*([^;]+)\s*;/i);
-      if(m) return m[1].trim();
-      m = s.match(/background\s*:\s*([^;]+)\s*;/i);
-      if(m) return m[1].trim().split(/\s+/)[0]; // best-effort
-      return null;
-    }
-
-    function extractBgFromStyles(css){
-      // Very rough: find rule blocks that mention "body" or "html, body"
-      // then grab background-color or background.
-      // This is not a full CSS parser. It's a pragmatic hack.
-      const candidates = [];
-
-      // normalize remove comments
-      const cleaned = css.replace(/\/\*[\s\S]*?\*\//g, " ");
-
-      // find blocks like "html, body { ... }" or "body { ... }"
-      const re = /(^|})\s*([^{]+)\{([^}]+)\}/g;
-      let m;
-      while((m = re.exec(cleaned))){
-        const selector = (m[2] || "").toLowerCase();
-        const bodyish = selector.includes("body") || selector.includes("html");
-        if(!bodyish) continue;
-
-        const block = m[3] || "";
-        // prefer background-color
-        let mc = block.match(/background-color\s*:\s*([^;]+)\s*;/i);
-        if(mc) candidates.push(mc[1].trim());
-        else{
-          mc = block.match(/background\s*:\s*([^;]+)\s*;/i);
-          if(mc) candidates.push(mc[1].trim().split(/\s+/)[0]);
+      
+      // Check inline styles
+      const targets = [doc.documentElement, doc.body].filter(Boolean);
+      for (const el of targets) {
+        const style = el.getAttribute("style");
+        if (style) {
+          const match = style.match(/background(-color)?\s*:\s*([^;]+)/i);
+          if (match) {
+            const color = match[2].trim().split(/\s+/)[0];
+            const rgba = parseColorToRGBA(color);
+            if (rgba) return rgba;
+          }
         }
       }
-
-      return candidates[0] || null;
+      
+      // Check style tags
+      const styles = [...doc.querySelectorAll("style")].map(s => s.textContent || "").join("\n");
+      const cleaned = styles.replace(/\/\*[\s\S]*?\*\//g, " ");
+      const re = /(body|html)[^{]*\{([^}]+)\}/gi;
+      let m;
+      while ((m = re.exec(cleaned))) {
+        const block = m[2] || "";
+        let mc = block.match(/background(-color)?\s*:\s*([^;]+)/i);
+        if (mc) {
+          const color = mc[2].trim().split(/\s+/)[0];
+          const rgba = parseColorToRGBA(color);
+          if (rgba) return rgba;
+        }
+      }
+      
+      return null;
     }
-
-    // ---------- load / preview / export ----------
-    function loadIntoIframe(html){
-      // Use srcdoc for simplicity; preserve original scripts/styles inside
+    
+    // ===== Element Selection Helpers =====
+    function getCssPath(node) {
+      if (!node || node.nodeType !== 1) return "-";
+      const parts = [];
+      let cur = node;
+      while (cur && cur.nodeType === 1 && cur !== cur.ownerDocument.documentElement) {
+        let part = cur.tagName.toLowerCase();
+        if (cur.id) {
+          part += `#${cur.id}`;
+          parts.unshift(part);
+          break;
+        }
+        const parent = cur.parentElement;
+        if (parent) {
+          const siblings = [...parent.children].filter(ch => ch.tagName === cur.tagName);
+          if (siblings.length > 1) {
+            const idx = siblings.indexOf(cur) + 1;
+            part += `:nth-of-type(${idx})`;
+          }
+        }
+        parts.unshift(part);
+        cur = parent;
+      }
+      return parts.join(" > ") || node.tagName.toLowerCase();
+    }
+    
+    function isSelectableElement(node) {
+      if (!node || node.nodeType !== 1) return false;
+      const tag = node.tagName.toLowerCase();
+      
+      // Skip system elements
+      if (["html", "head", "body", "script", "style", "meta", "link", "svg"].includes(tag)) return false;
+      
+      // Check for text content
+      const text = (node.textContent || "").replace(/\s+/g, " ").trim();
+      if (text.length === 0) return false;
+      
+      // Avoid huge containers
+      if (tag === "div" && text.length > 200) return false;
+      
+      return true;
+    }
+    
+    function findBestTarget(start) {
+      if (!start) return null;
+      let cur = start;
+      const doc = cur.ownerDocument;
+      while (cur && cur !== doc.body && cur !== doc.documentElement) {
+        if (isSelectableElement(cur)) return cur;
+        cur = cur.parentElement;
+      }
+      return null;
+    }
+    
+    // ===== Style Injection =====
+    function ensureEditorStyles(doc) {
+      // Selection/hover styles
+      let overlay = doc.getElementById("integrated-editor-overlay");
+      if (!overlay) {
+        overlay = doc.createElement("style");
+        overlay.id = "integrated-editor-overlay";
+        overlay.textContent = `
+          [data-editor-selected="1"] {
+            outline: 2px solid rgba(0, 200, 255, .85) !important;
+            outline-offset: 2px !important;
+            box-shadow: 0 0 0 4px rgba(0, 200, 255, .20) !important;
+          }
+          [data-editor-hover="1"] {
+            outline: 2px dashed rgba(255, 255, 255, .50) !important;
+            outline-offset: 2px !important;
+          }
+        `;
+        (doc.head || doc.documentElement).appendChild(overlay);
+      }
+      
+      // Animation styles
+      let animStyles = doc.getElementById("integrated-anim-styles");
+      if (!animStyles) {
+        animStyles = doc.createElement("style");
+        animStyles.id = "integrated-anim-styles";
+        animStyles.textContent = `
+          [data-ae] {
+            animation-duration: var(--ae-dur, .8s);
+            animation-delay: var(--ae-delay, 0s);
+            animation-timing-function: var(--ae-ease, ease-out);
+            animation-iteration-count: var(--ae-iter, 1);
+            animation-fill-mode: var(--ae-fill, both);
+            animation-play-state: var(--ae-state, running);
+          }
+          
+          [data-ae="fade-in"] { animation-name: ae_fade_in; }
+          @keyframes ae_fade_in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          
+          [data-ae="fade-up"] { animation-name: ae_fade_up; }
+          @keyframes ae_fade_up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          
+          [data-ae="fade-down"] { animation-name: ae_fade_down; }
+          @keyframes ae_fade_down {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          
+          [data-ae="fade-left"] { animation-name: ae_fade_left; }
+          @keyframes ae_fade_left {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+          
+          [data-ae="fade-right"] { animation-name: ae_fade_right; }
+          @keyframes ae_fade_right {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+          
+          [data-ae="pop"] { animation-name: ae_pop; }
+          @keyframes ae_pop {
+            0% { opacity: 0; transform: scale(.92); }
+            60% { opacity: 1; transform: scale(1.03); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+          
+          [data-ae="shake"] { animation-name: ae_shake; }
+          @keyframes ae_shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-6px); }
+            40% { transform: translateX(6px); }
+            60% { transform: translateX(-4px); }
+            80% { transform: translateX(4px); }
+          }
+          
+          [data-ae="float"] { animation-name: ae_float; }
+          @keyframes ae_float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+          }
+          
+          [data-ae="rotate"] { animation-name: ae_rotate; }
+          @keyframes ae_rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          
+          [data-ae="zoom"] { animation-name: ae_zoom; }
+          @keyframes ae_zoom {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+          }
+        `;
+        (doc.head || doc.documentElement).appendChild(animStyles);
+      }
+    }
+    
+    // ===== Clear Selections =====
+    function clearAllMarks(doc) {
+      if (!doc) return;
+      doc.querySelectorAll('[data-editor-selected], [data-editor-hover]').forEach(n => {
+        n.removeAttribute("data-editor-selected");
+        n.removeAttribute("data-editor-hover");
+      });
+    }
+    
+    // ===== Text Editor Functions =====
+    function updateTextPanel(node) {
+      if (!node) {
+        selectedElement = null;
+        textTag.textContent = "-";
+        textPreview.textContent = "-";
+        textPath.textContent = "-";
+        textReset.disabled = true;
+        textClear.disabled = true;
+        statusSelection.textContent = "選択: なし";
+        return;
+      }
+      
+      selectedElement = node;
+      const text = (node.textContent || "").replace(/\s+/g, " ").trim();
+      textTag.textContent = node.tagName.toLowerCase();
+      textPreview.textContent = text.length > 50 ? text.slice(0, 50) + "…" : text;
+      textPath.textContent = getCssPath(node);
+      
+      textReset.disabled = false;
+      textClear.disabled = false;
+      
+      // Get computed styles
+      const cs = node.ownerDocument.defaultView.getComputedStyle(node);
+      
+      // Font size
+      const fs = parseFloat(cs.fontSize) || 16;
+      textSize.value = clamp(Math.round(fs), 8, 96);
+      textSizeV.textContent = `${textSize.value}px`;
+      
+      // Color
+      const col = cs.color;
+      const m = col.match(/rgba?\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)(?:\s*,\s*([0-9.]+))?\s*\)/);
+      if (m) {
+        const r = clamp(Math.round(+m[1]), 0, 255);
+        const g = clamp(Math.round(+m[2]), 0, 255);
+        const b = clamp(Math.round(+m[3]), 0, 255);
+        const a = m[4] == null ? 1 : clamp(+m[4], 0, 1);
+        const hex = hexString(r, g, b);
+        textColor.value = hex;
+        textAlpha.value = Math.round(a * 100);
+        textAlphaV.textContent = a.toFixed(2);
+        textHex.textContent = hex;
+      }
+      
+      statusSelection.textContent = `選択: ${node.tagName.toLowerCase()}`;
+    }
+    
+    function applyTextStyles() {
+      if (!selectedElement) return;
+      const { r, g, b } = hexToRgb(textColor.value);
+      const a = (+textAlpha.value) / 100;
+      selectedElement.style.color = rgbaString(r, g, b, a);
+      selectedElement.style.fontSize = `${+textSize.value}px`;
+    }
+    
+    // ===== Animation Functions =====
+    function updateAnimationPanel(node) {
+      if (!node) {
+        selectedElement = null;
+        animTag.textContent = "-";
+        animPreview.textContent = "-";
+        animPath.textContent = "-";
+        [animPreset, animDur, animDelay, animEase, animIter, animReplay, animReset, animClear].forEach(el => el.disabled = true);
+        statusSelection.textContent = "選択: なし";
+        return;
+      }
+      
+      selectedElement = node;
+      const text = (node.textContent || "").replace(/\s+/g, " ").trim();
+      animTag.textContent = node.tagName.toLowerCase();
+      animPreview.textContent = text.length > 50 ? text.slice(0, 50) + "…" : text;
+      animPath.textContent = getCssPath(node);
+      
+      [animPreset, animDur, animDelay, animEase, animIter, animReplay, animReset, animClear].forEach(el => el.disabled = false);
+      
+      // Load current settings
+      const ae = node.getAttribute("data-ae") || "none";
+      animPreset.value = ae;
+      
+      const getVar = (name, fallback) => (node.style.getPropertyValue(name) || fallback).trim();
+      animDur.value = parseFloat(getVar("--ae-dur", "0.8s")) || 0.8;
+      animDelay.value = parseFloat(getVar("--ae-delay", "0s")) || 0;
+      animEase.value = getVar("--ae-ease", "ease-out");
+      animIter.value = getVar("--ae-iter", "1");
+      
+      syncAnimationReadouts();
+      statusSelection.textContent = `選択: ${node.tagName.toLowerCase()}`;
+    }
+    
+    function syncAnimationReadouts() {
+      animDurV.textContent = `${(+animDur.value).toFixed(2)}s`;
+      animDelayV.textContent = `${(+animDelay.value).toFixed(2)}s`;
+    }
+    
+    function applyAnimation() {
+      if (!selectedElement) return;
+      
+      const preset = animPreset.value;
+      if (preset === "none") {
+        selectedElement.removeAttribute("data-ae");
+        selectedElement.style.removeProperty("--ae-dur");
+        selectedElement.style.removeProperty("--ae-delay");
+        selectedElement.style.removeProperty("--ae-ease");
+        selectedElement.style.removeProperty("--ae-iter");
+        selectedElement.style.removeProperty("--ae-fill");
+        selectedElement.style.removeProperty("--ae-state");
+        return;
+      }
+      
+      selectedElement.setAttribute("data-ae", preset);
+      selectedElement.style.setProperty("--ae-dur", `${(+animDur.value).toFixed(2)}s`);
+      selectedElement.style.setProperty("--ae-delay", `${(+animDelay.value).toFixed(2)}s`);
+      selectedElement.style.setProperty("--ae-ease", animEase.value);
+      selectedElement.style.setProperty("--ae-iter", animIter.value);
+      selectedElement.style.setProperty("--ae-fill", "both");
+    }
+    
+    function replayAnimation() {
+      if (!selectedElement) return;
+      selectedElement.style.setProperty("--ae-state", "paused");
+      void selectedElement.offsetWidth;
+      selectedElement.style.removeProperty("--ae-state");
+    }
+    
+    // ===== Document Interaction =====
+    function attachDocumentListeners(doc) {
+      ensureEditorStyles(doc);
+      clearAllMarks(doc);
+      
+      const onClick = (e) => {
+        if (currentPanel === 'background') return;
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const target = findBestTarget(e.target);
+        clearAllMarks(doc);
+        
+        if (target) {
+          target.setAttribute("data-editor-selected", "1");
+          if (currentPanel === 'text') {
+            updateTextPanel(target);
+            applyTextStyles();
+          } else if (currentPanel === 'animation') {
+            updateAnimationPanel(target);
+          }
+        } else {
+          updateTextPanel(null);
+          updateAnimationPanel(null);
+        }
+      };
+      
+      const onMove = (e) => {
+        if (currentPanel === 'background') return;
+        
+        const t = findBestTarget(e.target);
+        doc.querySelectorAll('[data-editor-hover="1"]').forEach(n => n.removeAttribute("data-editor-hover"));
+        if (t && t !== selectedElement) t.setAttribute("data-editor-hover", "1");
+      };
+      
+      doc.addEventListener("click", onClick, true);
+      doc.addEventListener("mousemove", onMove, true);
+    }
+    
+    // ===== Load HTML =====
+    function loadIntoIframe(html) {
       iframe.srcdoc = html;
     }
-
-    function injectOverrideIntoHtmlString(html, R,G,B,A){
-      const css = `\n<!-- bg-editor override -->\n<style id="bg-editor-override">html, body { background: ${rgbaString(R,G,B,A)} !important; }</style>\n`;
-      // Insert into <head> if exists; otherwise into start of document
-      if(/<head[^>]*>/i.test(html)){
-        if(/<style[^>]+id=["']bg-editor-override["'][^>]*>[\s\S]*?<\/style>/i.test(html)){
-          return html.replace(/<style[^>]+id=["']bg-editor-override["'][^>]*>[\s\S]*?<\/style>/i,
-                              `<style id="bg-editor-override">html, body { background: ${rgbaString(R,G,B,A)} !important; }</style>`);
-        }
-        return html.replace(/<head[^>]*>/i, (m) => m + css);
-      }
-      // no head: prepend
-      return css + html;
+    
+    // ===== Export Functions =====
+    function cleanupForExport(doc) {
+      clearAllMarks(doc);
+      const overlay = doc.getElementById("integrated-editor-overlay");
+      if (overlay) overlay.remove();
     }
-
-    function downloadText(filename, text){
-      const blob = new Blob([text], {type:"text/html;charset=utf-8"});
+    
+    function injectStylesIntoHtml(html) {
+      const doc = iframe.contentDocument;
+      if (!doc) return html;
+      
+      // Collect all styles we need to inject
+      let styles = "";
+      
+      // Background style
+      const bgStyle = doc.getElementById("integrated-bg-override");
+      if (bgStyle) {
+        styles += `\n<!-- Background Override -->\n${bgStyle.outerHTML}\n`;
+      }
+      
+      // Animation styles
+      const animStyle = doc.getElementById("integrated-anim-styles");
+      if (animStyle) {
+        styles += `\n<!-- Animation Styles -->\n${animStyle.outerHTML}\n`;
+      }
+      
+      // Insert into HTML
+      if (styles) {
+        if (/<head[^>]*>/i.test(html)) {
+          html = html.replace(/<head[^>]*>/i, (m) => m + styles);
+        } else {
+          html = styles + html;
+        }
+      }
+      
+      return html;
+    }
+    
+    function exportHtml() {
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+      
+      cleanupForExport(doc);
+      
+      const doctype = "<!doctype html>\n";
+      let html = doctype + doc.documentElement.outerHTML;
+      
+      // Make sure styles are included
+      html = injectStylesIntoHtml(html);
+      
+      downloadText(lastFilename, html);
+      
+      // Restore editor UI
+      ensureEditorStyles(doc);
+      if (selectedElement) selectedElement.setAttribute("data-editor-selected", "1");
+      
+      statusText.textContent = "エクスポート完了！";
+      setTimeout(() => {
+        statusText.textContent = "編集中...";
+      }, 2000);
+    }
+    
+    function downloadText(filename, text) {
+      const blob = new Blob([text], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -319,47 +1140,118 @@
       a.remove();
       URL.revokeObjectURL(url);
     }
-
+    
+    // ===== Event Listeners =====
+    
+    // File input
     fileInput.addEventListener("change", async (e) => {
       const f = e.target.files?.[0];
-      if(!f) return;
-      lastFilename = f.name.replace(/\.(html?|HTML?)$/, "") + "_bg_edited.html";
+      if (!f) return;
+      
+      lastFilename = f.name.replace(/\.(html?|HTML?)$/, "") + "_edited.html";
       originalHtml = await f.text();
       loadIntoIframe(originalHtml);
       exportBtn.disabled = false;
-
-      // Detect background
-      const det = detectBackgroundColorFromHtml(originalHtml);
-      if(det){
-        detectMsg.innerHTML = `検出: <span class="ok">${det.why}</span> から背景色を拾いました。`;
-        setUIFromRGBA(det.rgba.R, det.rgba.G, det.rgba.B, det.rgba.A);
-      }else{
-        detectMsg.innerHTML = `検出: <span class="danger">背景色が見つからなかった</span>ので、現在のスライダー値から開始します。`;
-        syncUI();
+      
+      // Detect background color
+      const detected = detectBackgroundColor(originalHtml);
+      if (detected) {
+        bgR.value = detected.R;
+        bgG.value = detected.G;
+        bgB.value = detected.B;
+        bgA.value = Math.round(detected.A * 100);
+        syncBackgroundUI();
+        statusText.innerHTML = `<span class="ok">背景色を検出しました</span>`;
+      } else {
+        syncBackgroundUI();
+        statusText.innerHTML = `<span class="warn">背景色が検出できませんでした</span>`;
       }
-
-      // after iframe loads, apply override
-      iframe.addEventListener("load", () => syncUI(), { once:true });
+      
+      // Setup iframe
+      iframe.addEventListener("load", () => {
+        const doc = iframe.contentDocument;
+        attachDocumentListeners(doc);
+        syncBackgroundUI();
+        statusIndicator.classList.add('active');
+        setTimeout(() => {
+          statusText.textContent = "編集中...";
+        }, 2000);
+      }, { once: true });
     });
-
-    [r,g,b,a].forEach(inp => inp.addEventListener("input", syncUI));
-
-    pickBtn.addEventListener("click", () => colorPick.click());
-    colorPick.addEventListener("input", () => {
-      const rgba = parseColorToRGBA(colorPick.value);
-      if(rgba) setUIFromRGBA(rgba.R, rgba.G, rgba.B, (+a.value)/100);
+    
+    // Background controls
+    [bgR, bgG, bgB, bgA].forEach(inp => inp.addEventListener("input", syncBackgroundUI));
+    bgPickBtn.addEventListener("click", () => bgColorPick.click());
+    bgColorPick.addEventListener("input", () => {
+      const rgba = parseColorToRGBA(bgColorPick.value);
+      if (rgba) {
+        bgR.value = rgba.R;
+        bgG.value = rgba.G;
+        bgB.value = rgba.B;
+        syncBackgroundUI();
+      }
     });
-
-    exportBtn.addEventListener("click", () => {
-      if(!originalHtml) return;
-      const R = +r.value, G = +g.value, B = +b.value, A = (+a.value)/100;
-      const out = injectOverrideIntoHtmlString(originalHtml, R,G,B,A);
-      downloadText(lastFilename || "edited.html", out);
+    
+    // Text controls
+    function onTextUIChange() {
+      textHex.textContent = textColor.value.toUpperCase();
+      const a = (+textAlpha.value) / 100;
+      textAlphaV.textContent = a.toFixed(2);
+      textSizeV.textContent = `${textSize.value}px`;
+      applyTextStyles();
+    }
+    
+    textColor.addEventListener("input", onTextUIChange);
+    textAlpha.addEventListener("input", onTextUIChange);
+    textSize.addEventListener("input", onTextUIChange);
+    
+    textReset.addEventListener("click", () => {
+      if (!selectedElement) return;
+      selectedElement.style.removeProperty("color");
+      selectedElement.style.removeProperty("font-size");
+      updateTextPanel(selectedElement);
     });
-
-    // init
-    syncUI();
-    loadIntoIframe("<!doctype html><html><head><meta charset='utf-8'><title>preview</title></head><body style='margin:0;min-height:100vh;display:grid;place-items:center;color:#fff;font-family:system-ui'>HTMLを読み込んでください</body></html>");
+    
+    textClear.addEventListener("click", () => {
+      const doc = iframe.contentDocument;
+      if (doc) clearAllMarks(doc);
+      updateTextPanel(null);
+    });
+    
+    // Animation controls
+    function onAnimUIChange() {
+      syncAnimationReadouts();
+      applyAnimation();
+      replayAnimation();
+    }
+    
+    [animPreset, animDur, animDelay, animEase, animIter].forEach(inp => inp.addEventListener("input", onAnimUIChange));
+    
+    animReplay.addEventListener("click", replayAnimation);
+    
+    animReset.addEventListener("click", () => {
+      if (!selectedElement) return;
+      selectedElement.removeAttribute("data-ae");
+      ["--ae-dur", "--ae-delay", "--ae-ease", "--ae-iter", "--ae-fill", "--ae-state"].forEach(prop => {
+        selectedElement.style.removeProperty(prop);
+      });
+      updateAnimationPanel(selectedElement);
+    });
+    
+    animClear.addEventListener("click", () => {
+      const doc = iframe.contentDocument;
+      if (doc) clearAllMarks(doc);
+      updateAnimationPanel(null);
+    });
+    
+    // Export
+    exportBtn.addEventListener("click", exportHtml);
+    
+    // ===== Initialize =====
+    syncBackgroundUI();
+    onTextUIChange();
+    syncAnimationReadouts();
+    loadIntoIframe("<!doctype html><html><head><meta charset='utf-8'><title>preview</title></head><body style='margin:0;min-height:100vh;display:grid;place-items:center;color:#fff;font-family:system-ui'>HTMLファイルを読み込んでください</body></html>");
   </script>
 </body>
 </html>
