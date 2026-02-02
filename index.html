@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>HTML Visual Editor Ultimate - 統合完全版</title>
+  <title>HTML Visual Editor Ultimate - 位置調整機能付き</title>
   <style>
     :root { 
       color-scheme: dark; 
@@ -312,314 +312,240 @@
       width: 14px;
       height: 14px;
       border-radius: 999px;
-      border: 1px solid #405079;
-      background: #0a0f1f;
-      position: relative;
-      box-shadow: inset 0 0 0 2px rgba(0,0,0,.25);
+      background: var(--border-light);
+      transition: all 0.15s;
     }
 
-    .toggle.on {
-      color: var(--text);
-      border-color: var(--purple);
+    .toggle input:checked ~ .dot {
+      background: var(--success);
     }
 
-    .toggle.on .dot {
-      border-color: var(--purple);
-      background: rgba(124,58,237,.35);
-      box-shadow: 0 0 12px rgba(124,58,237,.45);
-    }
-
-    .selected-info {
-      padding: 10px;
-      background: rgba(0,0,0,.2);
-      border-radius: 8px;
-      font-size: 12px;
-      margin-bottom: 12px;
-    }
-
-    .selected-info b {
-      color: var(--accent);
-    }
-
-    /* Colors for status messages */
-    .ok { color: var(--success); }
-    .warn { color: var(--warning); }
-    .danger { color: var(--danger); }
-    .info { color: var(--info); }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-      .main-container {
-        grid-template-columns: 1fr;
+    /* Editor Styles */
+    .editor-styles {
+      [data-editor-selected] {
+        outline: 2px solid rgba(0, 200, 255, .85) !important;
+        outline-offset: 2px;
       }
       
-      .sidebar {
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        height: 300px;
+      [data-editor-hover] {
+        outline: 1px dashed rgba(255,255,255,.4) !important;
+        outline-offset: 1px;
       }
-    }
-
-    /* Animations for UI feedback */
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
-    .loading {
-      animation: pulse 1.5s infinite;
-    }
-
-    /* Custom scrollbar */
-    .panel::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .panel::-webkit-scrollbar-track {
-      background: rgba(255,255,255,.02);
-    }
-
-    .panel::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,.1);
-      border-radius: 4px;
-    }
-
-    .panel::-webkit-scrollbar-thumb:hover {
-      background: rgba(255,255,255,.15);
-    }
-
-    /* Icon styles */
-    .icon {
-      width: 16px;
-      height: 16px;
-      opacity: 0.8;
-    }
-
-    input[type="file"] {
-      display: none;
     }
   </style>
 </head>
 <body>
   <header>
-    <div class="title">HTML Visual Editor Ultimate</div>
-    <span class="pill" id="statusPill">未読み込み</span>
-    <span style="flex:1"></span>
-    <label class="btn small">
-      <span>📁 HTMLファイルを開く</span>
-      <input type="file" id="fileInput" accept=".html,.htm,text/html" />
-    </label>
-    <button class="btn primary small" id="exportBtn" disabled>💾 変更を保存</button>
+    <span class="title">📐 HTML Visual Editor Ultimate</span>
+    <input type="file" id="fileInput" accept=".html,.htm" style="display:none" />
+    <button class="btn" onclick="document.getElementById('fileInput').click()">📂 開く</button>
+    <button class="btn primary" id="exportBtn" disabled>💾 エクスポート</button>
+    <div style="flex:1"></div>
+    <span class="pill">
+      <span class="indicator" id="statusIndicator"></span>
+      <span id="statusPill">待機中</span>
+    </span>
   </header>
 
   <div class="main-container">
-    <div class="sidebar">
+    <aside class="sidebar">
       <div class="tabs">
-        <button class="tab active" data-panel="background">背景</button>
-        <button class="tab" data-panel="text">テキスト</button>
-        <button class="tab" data-panel="border">枠線</button>
-        <button class="tab" data-panel="glow">発光</button>
-        <button class="tab" data-panel="animation">アニメ</button>
+        <button class="tab active" data-tab="background">背景</button>
+        <button class="tab" data-tab="text">テキスト</button>
+        <button class="tab" data-tab="border">枠線</button>
+        <button class="tab" data-tab="glow">発光</button>
+        <button class="tab" data-tab="animation">動き</button>
+        <button class="tab" data-tab="position">位置</button>
       </div>
-      
+
       <div class="panels">
         <!-- Background Panel -->
-        <div class="panel active" id="backgroundPanel">
-          <h2>🎨 背景色の設定</h2>
+        <div class="panel active" data-panel="background">
+          <h2>🎨 背景色</h2>
           
           <div class="row">
-            <label>赤 (R)</label>
-            <input type="range" id="bgR" min="0" max="255" value="255" />
-            <span class="mono" id="bgRV">255</span>
+            <label>R</label>
+            <input type="range" id="bgR" min="0" max="255" value="26" />
+            <span id="bgRV" class="mono">26</span>
           </div>
           
           <div class="row">
-            <label>緑 (G)</label>
-            <input type="range" id="bgG" min="0" max="255" value="255" />
-            <span class="mono" id="bgGV">255</span>
+            <label>G</label>
+            <input type="range" id="bgG" min="0" max="255" value="32" />
+            <span id="bgGV" class="mono">32</span>
           </div>
           
           <div class="row">
-            <label>青 (B)</label>
-            <input type="range" id="bgB" min="0" max="255" value="255" />
-            <span class="mono" id="bgBV">255</span>
+            <label>B</label>
+            <input type="range" id="bgB" min="0" max="255" value="44" />
+            <span id="bgBV" class="mono">44</span>
           </div>
           
           <div class="row">
-            <label>不透明度</label>
+            <label>透明度</label>
             <input type="range" id="bgA" min="0" max="100" value="100" />
-            <span class="mono" id="bgAV">100%</span>
+            <span id="bgAV" class="mono">1.00</span>
           </div>
           
           <div class="row">
+            <label>プレビュー</label>
             <div class="swatch" id="bgSwatch"></div>
-            <button class="btn small" id="bgPickBtn">カラー選択</button>
-            <input type="color" id="bgColorPick" style="display:none" />
+            <input type="color" id="bgColorPick" value="#1a202c" style="display:none" />
+            <button class="btn small" id="bgPickBtn">🎨</button>
           </div>
           
           <div class="hint">
-            背景色はHTML全体に適用されます。自動検出機能により、既存の背景色を読み込みます。
+            💡 HTMLファイルを開くと背景色を自動検出します
           </div>
         </div>
 
         <!-- Text Panel -->
-        <div class="panel" id="textPanel">
+        <div class="panel" data-panel="text">
           <h2>✏️ テキストスタイル</h2>
           
-          <div class="selected-info" id="textSelectedInfo">
-            要素を選択してください
-          </div>
-          
           <div class="row">
-            <label>テキスト色</label>
+            <label>色</label>
             <input type="color" id="textColor" value="#000000" />
-            <span class="mono" id="textHex">#000000</span>
+            <span id="textHex" class="mono">#000000</span>
           </div>
           
           <div class="row">
-            <label>不透明度</label>
+            <label>透明度</label>
             <input type="range" id="textAlpha" min="0" max="100" value="100" />
-            <span class="mono" id="textAlphaV">1.00</span>
+            <span id="textAlphaV" class="mono">1.00</span>
           </div>
           
           <div class="row">
             <label>サイズ</label>
-            <input type="range" id="textSize" min="8" max="72" value="16" />
-            <span class="mono" id="textSizeV">16px</span>
+            <input type="range" id="textSize" min="8" max="120" value="16" />
+            <span id="textSizeV" class="mono">16px</span>
           </div>
           
           <div class="row">
-            <button class="btn small" id="textReset">リセット</button>
-            <button class="btn small" id="textClear">選択解除</button>
+            <button class="btn small" id="textReset">♻️ リセット</button>
+            <button class="btn small danger" id="textClear">❌ 選択解除</button>
           </div>
           
           <div class="hint">
-            要素をクリックしてテキストスタイルを編集します。変更はstyle属性に直接書き込まれます。
+            💡 要素を選択してからスタイルを変更してください
           </div>
         </div>
 
         <!-- Border Panel -->
-        <div class="panel" id="borderPanel">
-          <h2>🔲 枠線設定</h2>
+        <div class="panel" data-panel="border">
+          <h2>🔲 枠線</h2>
           
-          <div class="selected-info" id="borderSelectedInfo">
-            要素を選択してください
+          <div class="row">
+            <label>太さ</label>
+            <input type="number" id="borderWidth" min="0" max="50" value="2" />
+            <span>px</span>
           </div>
           
           <div class="row">
-            <label>太さ(px)</label>
-            <input type="number" id="borderWidth" min="0" value="2" />
-          </div>
-          
-          <div class="row">
-            <label>色</label>
-            <input type="color" id="borderColor" value="#7c3aed" />
-          </div>
-          
-          <div class="row">
-            <label>種類</label>
+            <label>スタイル</label>
             <select id="borderStyle">
-              <option value="solid">solid</option>
-              <option value="dashed">dashed</option>
-              <option value="dotted">dotted</option>
-              <option value="double">double</option>
-              <option value="none">none</option>
+              <option value="solid">実線</option>
+              <option value="dashed">破線</option>
+              <option value="dotted">点線</option>
+              <option value="double">二重線</option>
             </select>
           </div>
           
           <div class="row">
-            <button class="btn small" id="applyBorderBtn" disabled>枠線を適用</button>
-            <button class="btn danger small" id="removeBorderBtn" disabled>枠線を削除</button>
+            <label>色</label>
+            <input type="color" id="borderColor" value="#000000" />
+          </div>
+          
+          <div class="row">
+            <label>角丸</label>
+            <input type="number" id="borderRadius" min="0" max="100" value="0" />
+            <span>px</span>
+          </div>
+          
+          <div class="row">
+            <button class="btn small primary" id="applyBorder">✓ 適用</button>
+            <button class="btn small" id="removeBorder">🗑️ 削除</button>
           </div>
           
           <div class="hint">
-            要素をクリックして枠線を設定します。適用はstyle属性へ書き込みます。
+            💡 要素を選択して枠線を設定できます
           </div>
         </div>
 
         <!-- Glow Panel -->
-        <div class="panel" id="glowPanel">
-          <h2>✨ 発光効果 (box-shadow)</h2>
-          
-          <div class="selected-info" id="glowSelectedInfo">
-            要素を選択してください
-          </div>
+        <div class="panel" data-panel="glow">
+          <h2>✨ 発光効果</h2>
           
           <div class="row">
-            <div class="toggle" id="glowToggle">
-              <span class="dot"></span>
-              <span id="glowLabel">発光 OFF</span>
+            <label class="toggle" id="glowToggle">
               <input type="checkbox" id="glowOn" />
-            </div>
-          </div>
-          
-          <div class="row">
-            <label>発光色</label>
-            <input type="color" id="glowColor" value="#7c3aed" />
+              <span class="dot"></span>
+              <span>発光</span>
+            </label>
           </div>
           
           <div class="row">
             <label>ぼかし</label>
-            <input type="range" id="glowBlur" min="0" max="50" value="20" />
-            <span class="mono" id="glowBlurV">20px</span>
+            <input type="range" id="glowBlur" min="0" max="50" value="10" />
+            <span id="glowBlurV" class="mono">10px</span>
           </div>
           
           <div class="row">
-            <button class="btn small" id="applyGlowBtn" disabled>発光を適用</button>
+            <label>色</label>
+            <input type="color" id="glowColor" value="#00ccff" />
+          </div>
+          
+          <div class="row">
+            <button class="btn small primary" id="applyGlow">✓ 適用</button>
           </div>
           
           <div class="hint">
-            ON時はbox-shadowを適用します。OFFでnoneにします。<br/>
-            OFFにする前の値は要素に退避し、ONで復元できます。
+            💡 テキストや画像に光彩効果を追加できます
           </div>
         </div>
 
         <!-- Animation Panel -->
-        <div class="panel" id="animationPanel">
-          <h2>🎭 アニメーション設定</h2>
-          
-          <div class="selected-info" id="animSelectedInfo">
-            要素を選択してください
-          </div>
+        <div class="panel" data-panel="animation">
+          <h2>🎬 アニメーション</h2>
           
           <div class="row">
-            <label>プリセット</label>
+            <label>効果</label>
             <select id="animPreset">
               <option value="none">なし</option>
-              <option value="fade-in">フェードイン</option>
-              <option value="slide-up">スライドアップ</option>
-              <option value="slide-down">スライドダウン</option>
-              <option value="slide-left">スライド左</option>
-              <option value="slide-right">スライド右</option>
-              <option value="zoom-in">ズームイン</option>
-              <option value="zoom-out">ズームアウト</option>
-              <option value="rotate">回転</option>
+              <option value="fadeIn">フェードイン</option>
+              <option value="slideUp">スライドアップ</option>
+              <option value="slideDown">スライドダウン</option>
+              <option value="slideLeft">スライド左</option>
+              <option value="slideRight">スライド右</option>
+              <option value="zoomIn">ズームイン</option>
+              <option value="zoomOut">ズームアウト</option>
               <option value="bounce">バウンス</option>
-              <option value="pulse">パルス</option>
               <option value="shake">シェイク</option>
+              <option value="pulse">パルス</option>
+              <option value="rotate">回転</option>
             </select>
           </div>
           
           <div class="row">
             <label>時間</label>
-            <input type="range" id="animDur" min="0.1" max="5" step="0.1" value="0.8" />
-            <span class="mono" id="animDurV">0.80s</span>
+            <input type="range" id="animDur" min="0.1" max="5" step="0.1" value="1" />
+            <span id="animDurV" class="mono">1.0s</span>
           </div>
           
           <div class="row">
             <label>遅延</label>
-            <input type="range" id="animDelay" min="0" max="5" step="0.1" value="0" />
-            <span class="mono" id="animDelayV">0.00s</span>
+            <input type="range" id="animDelay" min="0" max="3" step="0.1" value="0" />
+            <span id="animDelayV" class="mono">0.0s</span>
           </div>
           
           <div class="row">
             <label>イージング</label>
             <select id="animEase">
-              <option value="linear">linear</option>
-              <option value="ease" selected>ease</option>
-              <option value="ease-in">ease-in</option>
-              <option value="ease-out">ease-out</option>
-              <option value="ease-in-out">ease-in-out</option>
+              <option value="ease">標準</option>
+              <option value="linear">リニア</option>
+              <option value="ease-in">イーズイン</option>
+              <option value="ease-out">イーズアウト</option>
+              <option value="ease-in-out">イーズ両方</option>
             </select>
           </div>
           
@@ -634,44 +560,141 @@
           </div>
           
           <div class="row">
-            <button class="btn small" id="animReplay">再生</button>
-            <button class="btn small" id="animReset">リセット</button>
-            <button class="btn small" id="animClear">選択解除</button>
+            <button class="btn small primary" id="animReplay">▶ 再生</button>
+            <button class="btn small" id="animReset">♻️ リセット</button>
+            <button class="btn small danger" id="animClear">❌ 選択解除</button>
           </div>
           
           <div class="hint">
-            要素を選択してアニメーションを設定します。プレビューで動作を確認できます。
+            💡 効果を選択すると自動的に適用されます
+          </div>
+        </div>
+
+        <!-- Position Panel -->
+        <div class="panel" data-panel="position">
+          <h2>📍 位置調整</h2>
+          
+          <div class="row">
+            <label>配置</label>
+            <select id="positionType">
+              <option value="">デフォルト</option>
+              <option value="static">static</option>
+              <option value="relative">relative</option>
+              <option value="absolute">absolute</option>
+              <option value="fixed">fixed</option>
+              <option value="sticky">sticky</option>
+            </select>
+          </div>
+          
+          <div class="row">
+            <label>Top</label>
+            <input type="number" id="posTop" placeholder="auto" />
+            <select id="posTopUnit" style="flex:0 0 70px">
+              <option value="px">px</option>
+              <option value="%">%</option>
+              <option value="em">em</option>
+              <option value="rem">rem</option>
+            </select>
+          </div>
+          
+          <div class="row">
+            <label>Left</label>
+            <input type="number" id="posLeft" placeholder="auto" />
+            <select id="posLeftUnit" style="flex:0 0 70px">
+              <option value="px">px</option>
+              <option value="%">%</option>
+              <option value="em">em</option>
+              <option value="rem">rem</option>
+            </select>
+          </div>
+          
+          <div class="row">
+            <label>Right</label>
+            <input type="number" id="posRight" placeholder="auto" />
+            <select id="posRightUnit" style="flex:0 0 70px">
+              <option value="px">px</option>
+              <option value="%">%</option>
+              <option value="em">em</option>
+              <option value="rem">rem</option>
+            </select>
+          </div>
+          
+          <div class="row">
+            <label>Bottom</label>
+            <input type="number" id="posBottom" placeholder="auto" />
+            <select id="posBottomUnit" style="flex:0 0 70px">
+              <option value="px">px</option>
+              <option value="%">%</option>
+              <option value="em">em</option>
+              <option value="rem">rem</option>
+            </select>
+          </div>
+
+          <h2 style="margin-top: 20px;">🔄 変形</h2>
+          
+          <div class="row">
+            <label>移動X</label>
+            <input type="number" id="transformX" placeholder="0" value="0" />
+            <span>px</span>
+          </div>
+          
+          <div class="row">
+            <label>移動Y</label>
+            <input type="number" id="transformY" placeholder="0" value="0" />
+            <span>px</span>
+          </div>
+          
+          <div class="row">
+            <label>回転</label>
+            <input type="range" id="transformRotate" min="-180" max="180" value="0" />
+            <span id="transformRotateV" class="mono">0°</span>
+          </div>
+          
+          <div class="row">
+            <label>拡大率</label>
+            <input type="range" id="transformScale" min="0.1" max="3" step="0.1" value="1" />
+            <span id="transformScaleV" class="mono">1.0</span>
+          </div>
+          
+          <div class="row">
+            <button class="btn small primary" id="applyPosition">✓ 適用</button>
+            <button class="btn small" id="resetPosition">♻️ リセット</button>
+            <button class="btn small danger" id="clearPosition">❌ 選択解除</button>
+          </div>
+          
+          <div class="hint">
+            💡 positionを設定してから座標を調整してください
           </div>
         </div>
       </div>
-    </div>
-    
+
+      <div class="status-bar">
+        <div class="status-item">
+          <span id="statusSelection">選択: なし</span>
+        </div>
+        <div style="flex:1"></div>
+        <div class="status-item">
+          <span id="statusText" class="mono">待機中...</span>
+        </div>
+      </div>
+    </aside>
+
     <main>
-      <iframe class="viewer" id="iframe"></iframe>
+      <iframe class="viewer" id="viewer"></iframe>
     </main>
   </div>
 
-  <div class="status-bar">
-    <span class="status-item">
-      <span class="indicator" id="statusIndicator"></span>
-      <span id="statusText">準備完了</span>
-    </span>
-    <span class="status-item">
-      <span id="statusSelection">選択: なし</span>
-    </span>
-  </div>
-
   <script>
-    // ===== Elements =====
+    // ===== DOM Elements =====
     const fileInput = document.getElementById('fileInput');
     const exportBtn = document.getElementById('exportBtn');
-    const iframe = document.getElementById('iframe');
+    const iframe = document.getElementById('viewer');
+    const statusIndicator = document.getElementById('statusIndicator');
     const statusPill = document.getElementById('statusPill');
     const statusText = document.getElementById('statusText');
     const statusSelection = document.getElementById('statusSelection');
-    const statusIndicator = document.getElementById('statusIndicator');
     
-    // Background elements
+    // Background
     const bgR = document.getElementById('bgR');
     const bgG = document.getElementById('bgG');
     const bgB = document.getElementById('bgB');
@@ -684,480 +707,312 @@
     const bgPickBtn = document.getElementById('bgPickBtn');
     const bgColorPick = document.getElementById('bgColorPick');
     
-    // Text elements
-    const textSelectedInfo = document.getElementById('textSelectedInfo');
+    // Text
     const textColor = document.getElementById('textColor');
-    const textHex = document.getElementById('textHex');
     const textAlpha = document.getElementById('textAlpha');
-    const textAlphaV = document.getElementById('textAlphaV');
     const textSize = document.getElementById('textSize');
+    const textHex = document.getElementById('textHex');
+    const textAlphaV = document.getElementById('textAlphaV');
     const textSizeV = document.getElementById('textSizeV');
     const textReset = document.getElementById('textReset');
     const textClear = document.getElementById('textClear');
     
-    // Border elements
-    const borderSelectedInfo = document.getElementById('borderSelectedInfo');
+    // Border
     const borderWidth = document.getElementById('borderWidth');
-    const borderColor = document.getElementById('borderColor');
     const borderStyle = document.getElementById('borderStyle');
-    const applyBorderBtn = document.getElementById('applyBorderBtn');
-    const removeBorderBtn = document.getElementById('removeBorderBtn');
+    const borderColor = document.getElementById('borderColor');
+    const borderRadius = document.getElementById('borderRadius');
+    const applyBorderBtn = document.getElementById('applyBorder');
+    const removeBorderBtn = document.getElementById('removeBorder');
     
-    // Glow elements
-    const glowSelectedInfo = document.getElementById('glowSelectedInfo');
+    // Glow
     const glowToggle = document.getElementById('glowToggle');
-    const glowLabel = document.getElementById('glowLabel');
     const glowOn = document.getElementById('glowOn');
-    const glowColor = document.getElementById('glowColor');
     const glowBlur = document.getElementById('glowBlur');
+    const glowColor = document.getElementById('glowColor');
     const glowBlurV = document.getElementById('glowBlurV');
-    const applyGlowBtn = document.getElementById('applyGlowBtn');
+    const applyGlowBtn = document.getElementById('applyGlow');
     
-    // Animation elements
-    const animSelectedInfo = document.getElementById('animSelectedInfo');
+    // Animation
     const animPreset = document.getElementById('animPreset');
     const animDur = document.getElementById('animDur');
-    const animDurV = document.getElementById('animDurV');
     const animDelay = document.getElementById('animDelay');
-    const animDelayV = document.getElementById('animDelayV');
     const animEase = document.getElementById('animEase');
     const animIter = document.getElementById('animIter');
+    const animDurV = document.getElementById('animDurV');
+    const animDelayV = document.getElementById('animDelayV');
     const animReplay = document.getElementById('animReplay');
     const animReset = document.getElementById('animReset');
     const animClear = document.getElementById('animClear');
     
+    // Position
+    const positionType = document.getElementById('positionType');
+    const posTop = document.getElementById('posTop');
+    const posLeft = document.getElementById('posLeft');
+    const posRight = document.getElementById('posRight');
+    const posBottom = document.getElementById('posBottom');
+    const posTopUnit = document.getElementById('posTopUnit');
+    const posLeftUnit = document.getElementById('posLeftUnit');
+    const posRightUnit = document.getElementById('posRightUnit');
+    const posBottomUnit = document.getElementById('posBottomUnit');
+    const transformX = document.getElementById('transformX');
+    const transformY = document.getElementById('transformY');
+    const transformRotate = document.getElementById('transformRotate');
+    const transformScale = document.getElementById('transformScale');
+    const transformRotateV = document.getElementById('transformRotateV');
+    const transformScaleV = document.getElementById('transformScaleV');
+    const applyPositionBtn = document.getElementById('applyPosition');
+    const resetPositionBtn = document.getElementById('resetPosition');
+    const clearPositionBtn = document.getElementById('clearPosition');
+    
     // ===== State =====
-    let currentPanel = 'background';
-    let selectedElement = null;
     let originalHtml = '';
     let lastFilename = 'edited.html';
+    let selectedElement = null;
+    let currentPanel = 'background';
     
-    // ===== Tab Switching =====
+    // ===== Tab Handling =====
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
-        const panel = tab.dataset.panel;
+        const targetTab = tab.dataset.tab;
         
-        // Update active tab
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        
-        // Update active panel
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        document.getElementById(panel + 'Panel').classList.add('active');
         
-        currentPanel = panel;
+        tab.classList.add('active');
+        document.querySelector(`[data-panel="${targetTab}"]`).classList.add('active');
         
-        // Clear selection when switching tabs
-        if (currentPanel === 'background') {
-          clearAllSelections();
-        }
+        currentPanel = targetTab;
       });
     });
     
     // ===== Helper Functions =====
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
-    
-    function parseColorToRGBA(color) {
-      const div = document.createElement('div');
-      div.style.color = color;
-      document.body.appendChild(div);
-      const computed = getComputedStyle(div).color;
-      document.body.removeChild(div);
-      
-      const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-      if (!match) return null;
-      
-      return {
-        R: parseInt(match[1], 10),
-        G: parseInt(match[2], 10),
-        B: parseInt(match[3], 10),
-        A: match[4] ? parseFloat(match[4]) : 1
-      };
+    function parseColorToRGBA(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        R: parseInt(result[1], 16),
+        G: parseInt(result[2], 16),
+        B: parseInt(result[3], 16),
+        A: 1
+      } : null;
     }
     
     function detectBackgroundColor(html) {
-      const bodyMatch = html.match(/<body[^>]*style\s*=\s*["']([^"']*)/i);
-      if (!bodyMatch) return null;
-      
-      const style = bodyMatch[1];
-      const bgMatch = style.match(/background(?:-color)?\s*:\s*([^;]+)/i);
-      if (!bgMatch) return null;
-      
-      return parseColorToRGBA(bgMatch[1].trim());
-    }
-    
-    function getCssPath(element) {
-      const path = [];
-      while (element && element.nodeType === Node.ELEMENT_NODE) {
-        let selector = element.nodeName.toLowerCase();
-        if (element.id) {
-          selector += '#' + element.id;
-          path.unshift(selector);
-          break;
-        } else {
-          let sibling = element;
-          let nth = 1;
-          while (sibling.previousElementSibling) {
-            sibling = sibling.previousElementSibling;
-            if (sibling.nodeName === element.nodeName) nth++;
-          }
-          if (nth > 1) selector += ':nth-of-type(' + nth + ')';
-        }
-        path.unshift(selector);
-        element = element.parentNode;
+      const bodyMatch = html.match(/body\s*\{[^}]*background(?:-color)?:\s*rgba?\(([^)]+)\)/i);
+      if (bodyMatch) {
+        const parts = bodyMatch[1].split(',').map(s => s.trim());
+        return {
+          R: parseInt(parts[0]) || 0,
+          G: parseInt(parts[1]) || 0,
+          B: parseInt(parts[2]) || 0,
+          A: parseFloat(parts[3]) || 1
+        };
       }
-      return path.join(' > ');
+      return null;
     }
     
-    // ===== Editor Styles Injection =====
     function ensureEditorStyles(doc) {
-      let style = doc.getElementById('ultimate-editor-styles');
-      if (!style) {
-        style = doc.createElement('style');
-        style.id = 'ultimate-editor-styles';
-        style.innerHTML = `
-          [data-editor-selected] {
-            outline: 2px solid rgba(0, 200, 255, .9) !important;
-            outline-offset: 2px !important;
-          }
-          [data-editor-hover] {
-            outline: 2px dashed rgba(0, 200, 255, .5) !important;
-            outline-offset: 2px !important;
-          }
-        `;
-        doc.head.appendChild(style);
-      }
+      if (doc.getElementById('ultimate-editor-styles')) return;
+      
+      const style = doc.createElement('style');
+      style.id = 'ultimate-editor-styles';
+      style.textContent = `
+        [data-editor-selected] {
+          outline: 2px solid rgba(0, 200, 255, .85) !important;
+          outline-offset: 2px;
+        }
+        [data-editor-hover] {
+          outline: 1px dashed rgba(255,255,255,.4) !important;
+          outline-offset: 1px;
+        }
+      `;
+      doc.head.appendChild(style);
     }
     
     function ensureAnimationStyles(doc) {
-      let style = doc.getElementById('ultimate-anim-styles');
-      if (!style) {
-        style = doc.createElement('style');
-        style.id = 'ultimate-anim-styles';
-        style.innerHTML = `
-          @keyframes fade-in {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          @keyframes slide-up {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-          }
-          @keyframes slide-down {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-          }
-          @keyframes slide-left {
-            from { transform: translateX(20px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-          }
-          @keyframes slide-right {
-            from { transform: translateX(-20px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-          }
-          @keyframes zoom-in {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-          }
-          @keyframes zoom-out {
-            from { transform: scale(1.2); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-          }
-          @keyframes rotate {
-            from { transform: rotate(-90deg); opacity: 0; }
-            to { transform: rotate(0); opacity: 1; }
-          }
-          @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-30px); }
-            60% { transform: translateY(-15px); }
-          }
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-          }
-          @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-            20%, 40%, 60%, 80% { transform: translateX(5px); }
-          }
-          
-          [data-ae] {
-            animation-name: var(--ae-name);
-            animation-duration: var(--ae-dur, 1s);
-            animation-delay: var(--ae-delay, 0s);
-            animation-timing-function: var(--ae-ease, ease);
-            animation-iteration-count: var(--ae-iter, 1);
-            animation-fill-mode: var(--ae-fill, both);
-            animation-play-state: var(--ae-state, running);
-          }
-          
-          [data-ae="fade-in"] { --ae-name: fade-in; }
-          [data-ae="slide-up"] { --ae-name: slide-up; }
-          [data-ae="slide-down"] { --ae-name: slide-down; }
-          [data-ae="slide-left"] { --ae-name: slide-left; }
-          [data-ae="slide-right"] { --ae-name: slide-right; }
-          [data-ae="zoom-in"] { --ae-name: zoom-in; }
-          [data-ae="zoom-out"] { --ae-name: zoom-out; }
-          [data-ae="rotate"] { --ae-name: rotate; }
-          [data-ae="bounce"] { --ae-name: bounce; }
-          [data-ae="pulse"] { --ae-name: pulse; }
-          [data-ae="shake"] { --ae-name: shake; }
-        `;
-        doc.head.appendChild(style);
+      if (doc.getElementById('animation-editor-styles')) return;
+      
+      const style = doc.createElement('style');
+      style.id = 'animation-editor-styles';
+      style.textContent = `
+        [data-ae] {
+          animation-name: var(--ae-name, none);
+          animation-duration: var(--ae-dur, 1s);
+          animation-delay: var(--ae-delay, 0s);
+          animation-timing-function: var(--ae-ease, ease);
+          animation-iteration-count: var(--ae-iter, 1);
+          animation-fill-mode: var(--ae-fill, both);
+        }
+
+        [data-ae="fadeIn"] { --ae-name: fadeIn; }
+        [data-ae="slideUp"] { --ae-name: slideUp; }
+        [data-ae="slideDown"] { --ae-name: slideDown; }
+        [data-ae="slideLeft"] { --ae-name: slideLeft; }
+        [data-ae="slideRight"] { --ae-name: slideRight; }
+        [data-ae="zoomIn"] { --ae-name: zoomIn; }
+        [data-ae="zoomOut"] { --ae-name: zoomOut; }
+        [data-ae="bounce"] { --ae-name: bounce; }
+        [data-ae="shake"] { --ae-name: shake; }
+        [data-ae="pulse"] { --ae-name: pulse; }
+        [data-ae="rotate"] { --ae-name: rotate; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideDown { from { transform: translateY(-40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideLeft { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideRight { from { transform: translateX(-40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes zoomIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes zoomOut { from { transform: scale(1.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-10px); }
+          75% { transform: translateX(10px); }
+        }
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        @keyframes rotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `;
+      doc.head.appendChild(style);
+    }
+    
+    // ===== Element Selection =====
+    function selectElement(el) {
+      if (selectedElement) {
+        selectedElement.removeAttribute('data-editor-selected');
+      }
+      
+      selectedElement = el;
+      selectedElement.setAttribute('data-editor-selected', '1');
+      
+      const tagName = el.tagName.toLowerCase();
+      const id = el.id ? `#${el.id}` : '';
+      const className = el.className ? `.${el.className.split(' ')[0]}` : '';
+      
+      statusSelection.textContent = `選択: ${tagName}${id}${className}`;
+      
+      updateTextPanel(el);
+      updateGlowPanel(el);
+      updateAnimationPanel(el);
+      updatePositionPanel(el);
+    }
+    
+    function clearAllSelections() {
+      if (selectedElement) {
+        selectedElement.removeAttribute('data-editor-selected');
+        selectedElement = null;
       }
     }
     
     // ===== Background Functions =====
     function syncBackgroundUI() {
-      const r = +bgR.value;
-      const g = +bgG.value;
-      const b = +bgB.value;
-      const a = +bgA.value / 100;
+      const r = parseInt(bgR.value);
+      const g = parseInt(bgG.value);
+      const b = parseInt(bgB.value);
+      const a = parseInt(bgA.value) / 100;
       
       bgRV.textContent = r;
       bgGV.textContent = g;
       bgBV.textContent = b;
-      bgAV.textContent = `${bgA.value}%`;
+      bgAV.textContent = a.toFixed(2);
       
-      const rgba = `rgba(${r},${g},${b},${a})`;
+      const rgba = `rgba(${r}, ${g}, ${b}, ${a})`;
       bgSwatch.style.background = rgba;
       
       const doc = iframe.contentDocument;
-      if (!doc) return;
-      
-      let style = doc.getElementById('ultimate-bg-override');
-      if (!style) {
-        style = doc.createElement('style');
-        style.id = 'ultimate-bg-override';
-        doc.head.appendChild(style);
-      }
-      style.innerHTML = `html, body { background: ${rgba} !important; }`;
-    }
-    
-    // ===== Selection Management =====
-    function clearAllSelections() {
-      const doc = iframe.contentDocument;
-      if (!doc) return;
-      
-      doc.querySelectorAll('[data-editor-selected]').forEach(el => {
-        el.removeAttribute('data-editor-selected');
-      });
-      doc.querySelectorAll('[data-editor-hover]').forEach(el => {
-        el.removeAttribute('data-editor-hover');
-      });
-      
-      selectedElement = null;
-      updateAllPanels(null);
-    }
-    
-    function selectElement(element) {
-      const doc = iframe.contentDocument;
-      if (!doc) return;
-      
-      clearAllSelections();
-      
-      if (element) {
-        selectedElement = element;
-        element.setAttribute('data-editor-selected', '1');
-        updateAllPanels(element);
-        statusSelection.textContent = `選択: ${element.tagName.toLowerCase()}`;
+      if (doc && doc.body) {
+        doc.body.style.background = rgba;
       }
     }
     
-    function updateAllPanels(element) {
-      updateTextPanel(element);
-      updateBorderPanel(element);
-      updateGlowPanel(element);
-      updateAnimationPanel(element);
-    }
-    
-    // ===== Panel Updates =====
-    function updateTextPanel(element) {
-      if (!element) {
-        textSelectedInfo.innerHTML = '要素を選択してください';
-        textReset.disabled = true;
-        textClear.disabled = true;
-        return;
-      }
+    // ===== Text Functions =====
+    function updateTextPanel(el) {
+      const computedStyle = window.getComputedStyle(el);
+      const color = computedStyle.color;
+      const fontSize = parseInt(computedStyle.fontSize);
       
-      const tag = element.tagName.toLowerCase();
-      const path = getCssPath(element);
-      textSelectedInfo.innerHTML = `<b>${escapeHtml(tag)}</b><br/><span style="font-size:11px;">${escapeHtml(path)}</span>`;
-      
-      const cs = element.ownerDocument.defaultView.getComputedStyle(element);
-      const rgba = parseColorToRGBA(cs.color);
-      
-      if (rgba) {
-        const hex = '#' + [rgba.R, rgba.G, rgba.B].map(x => x.toString(16).padStart(2, '0')).join('');
+      const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const a = match[4] ? parseFloat(match[4]) : 1;
+        
+        const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
         textColor.value = hex;
         textHex.textContent = hex.toUpperCase();
-        textAlpha.value = Math.round(rgba.A * 100);
-        textAlphaV.textContent = rgba.A.toFixed(2);
+        textAlpha.value = Math.round(a * 100);
+        textAlphaV.textContent = a.toFixed(2);
       }
       
-      const size = parseFloat(cs.fontSize) || 16;
-      textSize.value = size;
-      textSizeV.textContent = `${size}px`;
-      
-      textReset.disabled = false;
-      textClear.disabled = false;
+      textSize.value = fontSize;
+      textSizeV.textContent = `${fontSize}px`;
     }
     
-    function updateBorderPanel(element) {
-      if (!element) {
-        borderSelectedInfo.innerHTML = '要素を選択してください';
-        applyBorderBtn.disabled = true;
-        removeBorderBtn.disabled = true;
-        return;
-      }
-      
-      const tag = element.tagName.toLowerCase();
-      const path = getCssPath(element);
-      borderSelectedInfo.innerHTML = `<b>${escapeHtml(tag)}</b><br/><span style="font-size:11px;">${escapeHtml(path)}</span>`;
-      
-      const cs = element.ownerDocument.defaultView.getComputedStyle(element);
-      
-      const width = parseFloat(cs.borderTopWidth) || 0;
-      borderWidth.value = Math.round(width);
-      
-      const style = (cs.borderTopStyle && cs.borderTopStyle !== 'none') ? cs.borderTopStyle : 'solid';
-      borderStyle.value = style;
-      
-      const rgba = parseColorToRGBA(cs.borderTopColor);
-      if (rgba) {
-        const hex = '#' + [rgba.R, rgba.G, rgba.B].map(x => x.toString(16).padStart(2, '0')).join('');
-        borderColor.value = hex;
-      }
-      
-      applyBorderBtn.disabled = false;
-      removeBorderBtn.disabled = false;
-    }
-    
-    function updateGlowPanel(element) {
-      if (!element) {
-        glowSelectedInfo.innerHTML = '要素を選択してください';
-        applyGlowBtn.disabled = true;
-        return;
-      }
-      
-      const tag = element.tagName.toLowerCase();
-      const path = getCssPath(element);
-      glowSelectedInfo.innerHTML = `<b>${escapeHtml(tag)}</b><br/><span style="font-size:11px;">${escapeHtml(path)}</span>`;
-      
-      const cs = element.ownerDocument.defaultView.getComputedStyle(element);
-      const isGlowOn = cs.boxShadow && cs.boxShadow !== 'none';
-      
-      setGlowUI(isGlowOn);
-      
-      if (isGlowOn) {
-        // Try to extract color from box-shadow
-        const match = cs.boxShadow.match(/rgba?\([^)]+\)/i);
-        if (match) {
-          const rgba = parseColorToRGBA(match[0]);
-          if (rgba) {
-            const hex = '#' + [rgba.R, rgba.G, rgba.B].map(x => x.toString(16).padStart(2, '0')).join('');
-            glowColor.value = hex;
-          }
-        }
-      }
-      
-      applyGlowBtn.disabled = false;
-    }
-    
-    function updateAnimationPanel(element) {
-      if (!element) {
-        animSelectedInfo.innerHTML = '要素を選択してください';
-        animPreset.disabled = true;
-        animDur.disabled = true;
-        animDelay.disabled = true;
-        animEase.disabled = true;
-        animIter.disabled = true;
-        animReplay.disabled = true;
-        animReset.disabled = true;
-        animClear.disabled = true;
-        return;
-      }
-      
-      const tag = element.tagName.toLowerCase();
-      const path = getCssPath(element);
-      animSelectedInfo.innerHTML = `<b>${escapeHtml(tag)}</b><br/><span style="font-size:11px;">${escapeHtml(path)}</span>`;
-      
-      const ae = element.getAttribute('data-ae') || 'none';
-      animPreset.value = ae;
-      
-      const getVar = (name, fallback) => (element.style.getPropertyValue(name) || fallback).trim();
-      animDur.value = parseFloat(getVar('--ae-dur', '0.8s')) || 0.8;
-      animDelay.value = parseFloat(getVar('--ae-delay', '0s')) || 0;
-      animEase.value = getVar('--ae-ease', 'ease');
-      animIter.value = getVar('--ae-iter', '1');
-      
-      syncAnimationReadouts();
-      
-      animPreset.disabled = false;
-      animDur.disabled = false;
-      animDelay.disabled = false;
-      animEase.disabled = false;
-      animIter.disabled = false;
-      animReplay.disabled = false;
-      animReset.disabled = false;
-      animClear.disabled = false;
-    }
-    
-    function syncAnimationReadouts() {
-      animDurV.textContent = `${(+animDur.value).toFixed(2)}s`;
-      animDelayV.textContent = `${(+animDelay.value).toFixed(2)}s`;
-    }
-    
-    function setGlowUI(isOn) {
-      glowOn.checked = !!isOn;
-      glowToggle.classList.toggle('on', !!isOn);
-      glowLabel.textContent = isOn ? '発光 ON' : '発光 OFF';
-      glowBlurV.textContent = `${glowBlur.value}px`;
-    }
-    
-    // ===== Apply Functions =====
     function applyTextStyles() {
       if (!selectedElement) return;
       
-      const color = textColor.value;
-      const alpha = (+textAlpha.value) / 100;
+      const hex = textColor.value;
+      const a = (+textAlpha.value) / 100;
       const size = textSize.value;
       
-      const rgba = parseColorToRGBA(color);
-      if (rgba) {
-        selectedElement.style.color = `rgba(${rgba.R}, ${rgba.G}, ${rgba.B}, ${alpha})`;
+      const rgb = parseColorToRGBA(hex);
+      if (rgb) {
+        const rgba = `rgba(${rgb.R}, ${rgb.G}, ${rgb.B}, ${a})`;
+        selectedElement.style.color = rgba;
       }
-      selectedElement.style.fontSize = `${size}px`;
       
-      statusText.textContent = '変更を適用しました';
+      selectedElement.style.fontSize = `${size}px`;
+      statusText.textContent = 'テキストスタイルを適用しました';
     }
     
+    // ===== Border Functions =====
     function applyBorder() {
       if (!selectedElement) return;
       
-      const width = Math.max(0, parseInt(borderWidth.value || '0', 10));
-      const color = borderColor.value || '#000000';
-      const style = borderStyle.value || 'solid';
+      const width = borderWidth.value;
+      const style = borderStyle.value;
+      const color = borderColor.value;
+      const radius = borderRadius.value;
       
-      selectedElement.style.borderWidth = width + 'px';
-      selectedElement.style.borderStyle = style;
-      selectedElement.style.borderColor = color;
+      selectedElement.style.border = `${width}px ${style} ${color}`;
+      selectedElement.style.borderRadius = `${radius}px`;
       
-      updateBorderPanel(selectedElement);
       statusText.textContent = '枠線を適用しました';
     }
     
     function removeBorder() {
       if (!selectedElement) return;
       
-      selectedElement.style.border = 'none';
-      updateBorderPanel(selectedElement);
+      selectedElement.style.removeProperty('border');
+      selectedElement.style.removeProperty('border-radius');
+      
       statusText.textContent = '枠線を削除しました';
+    }
+    
+    // ===== Glow Functions =====
+    function updateGlowPanel(el) {
+      const boxShadow = el.style.boxShadow || window.getComputedStyle(el).boxShadow;
+      
+      if (boxShadow && boxShadow !== 'none') {
+        glowOn.checked = true;
+        setGlowUI(true);
+      } else {
+        glowOn.checked = false;
+        setGlowUI(false);
+      }
+    }
+    
+    function setGlowUI(isOn) {
+      glowOn.checked = isOn;
     }
     
     function applyGlow() {
@@ -1165,28 +1020,39 @@
       
       const isOn = glowOn.checked;
       
-      if (!isOn) {
-        // OFF: Save current box-shadow and clear it
-        const cs = selectedElement.ownerDocument.defaultView.getComputedStyle(selectedElement);
-        const current = cs.boxShadow;
-        if (current && current !== 'none') {
-          selectedElement.dataset.glowPrev = current;
-        }
-        selectedElement.style.boxShadow = 'none';
+      if (isOn) {
+        const blur = glowBlur.value;
+        const color = glowColor.value;
+        selectedElement.style.boxShadow = `0 0 ${blur}px ${color}`;
       } else {
-        // ON: Restore or apply new glow
-        const prev = selectedElement.dataset.glowPrev;
-        if (prev && prev !== 'none') {
-          selectedElement.style.boxShadow = prev;
-        } else {
-          const color = glowColor.value || '#7c3aed';
-          const blur = glowBlur.value || 20;
-          selectedElement.style.boxShadow = `0 0 ${blur}px ${color}`;
-        }
+        selectedElement.style.removeProperty('box-shadow');
       }
       
       updateGlowPanel(selectedElement);
       statusText.textContent = isOn ? '発光を適用しました' : '発光を解除しました';
+    }
+    
+    // ===== Animation Functions =====
+    function updateAnimationPanel(el) {
+      const preset = el.getAttribute('data-ae') || 'none';
+      animPreset.value = preset;
+      
+      const dur = parseFloat(el.style.getPropertyValue('--ae-dur')) || 1;
+      const delay = parseFloat(el.style.getPropertyValue('--ae-delay')) || 0;
+      const ease = el.style.getPropertyValue('--ae-ease') || 'ease';
+      const iter = el.style.getPropertyValue('--ae-iter') || '1';
+      
+      animDur.value = dur;
+      animDelay.value = delay;
+      animEase.value = ease;
+      animIter.value = iter;
+      
+      syncAnimationReadouts();
+    }
+    
+    function syncAnimationReadouts() {
+      animDurV.textContent = `${(+animDur.value).toFixed(1)}s`;
+      animDelayV.textContent = `${(+animDelay.value).toFixed(1)}s`;
     }
     
     function applyAnimation() {
@@ -1206,7 +1072,6 @@
         selectedElement.style.removeProperty('--ae-ease');
         selectedElement.style.removeProperty('--ae-iter');
         selectedElement.style.removeProperty('--ae-fill');
-        selectedElement.style.removeProperty('--ae-state');
         return;
       }
       
@@ -1222,24 +1087,182 @@
     
     function replayAnimation() {
       if (!selectedElement) return;
-
-      // アニメが未設定なら何もしない（ユーザーの混乱防止）
+      
       const ae = selectedElement.getAttribute('data-ae');
       if (!ae || ae === 'none') {
         statusText.textContent = 'アニメが未設定です';
         return;
       }
-
-      // 強制的に「最初から」再生させる：一度 animation を none で上書き → 再フロー → 解除
-      // （play-state の切替だけだと、終了後に再スタートしないケースがある）
+      
       const prevInline = selectedElement.style.animation;
       selectedElement.style.animation = 'none';
-      void selectedElement.offsetWidth; // reflow
+      void selectedElement.offsetWidth;
       selectedElement.style.animation = prevInline || '';
-
+      
       statusText.textContent = 'アニメーションを再生しました';
     }
-
+    
+    // ===== Position Functions =====
+    function updatePositionPanel(el) {
+      const computedStyle = window.getComputedStyle(el);
+      
+      // Position type
+      positionType.value = el.style.position || '';
+      
+      // Position values
+      const top = el.style.top;
+      const left = el.style.left;
+      const right = el.style.right;
+      const bottom = el.style.bottom;
+      
+      if (top) {
+        const match = top.match(/^([-\d.]+)(.*)$/);
+        if (match) {
+          posTop.value = match[1];
+          posTopUnit.value = match[2] || 'px';
+        }
+      } else {
+        posTop.value = '';
+      }
+      
+      if (left) {
+        const match = left.match(/^([-\d.]+)(.*)$/);
+        if (match) {
+          posLeft.value = match[1];
+          posLeftUnit.value = match[2] || 'px';
+        }
+      } else {
+        posLeft.value = '';
+      }
+      
+      if (right) {
+        const match = right.match(/^([-\d.]+)(.*)$/);
+        if (match) {
+          posRight.value = match[1];
+          posRightUnit.value = match[2] || 'px';
+        }
+      } else {
+        posRight.value = '';
+      }
+      
+      if (bottom) {
+        const match = bottom.match(/^([-\d.]+)(.*)$/);
+        if (match) {
+          posBottom.value = match[1];
+          posBottomUnit.value = match[2] || 'px';
+        }
+      } else {
+        posBottom.value = '';
+      }
+      
+      // Transform values
+      const transform = el.style.transform || computedStyle.transform;
+      if (transform && transform !== 'none') {
+        const translateMatch = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+        const rotateMatch = transform.match(/rotate\(([^)]+)deg\)/);
+        const scaleMatch = transform.match(/scale\(([^)]+)\)/);
+        
+        if (translateMatch) {
+          transformX.value = parseInt(translateMatch[1]) || 0;
+          transformY.value = parseInt(translateMatch[2]) || 0;
+        }
+        
+        if (rotateMatch) {
+          transformRotate.value = parseInt(rotateMatch[1]) || 0;
+        }
+        
+        if (scaleMatch) {
+          transformScale.value = parseFloat(scaleMatch[1]) || 1;
+        }
+      } else {
+        transformX.value = 0;
+        transformY.value = 0;
+        transformRotate.value = 0;
+        transformScale.value = 1;
+      }
+      
+      syncPositionReadouts();
+    }
+    
+    function syncPositionReadouts() {
+      transformRotateV.textContent = `${transformRotate.value}°`;
+      transformScaleV.textContent = parseFloat(transformScale.value).toFixed(1);
+    }
+    
+    function applyPosition() {
+      if (!selectedElement) return;
+      
+      // Apply position type
+      if (positionType.value) {
+        selectedElement.style.position = positionType.value;
+      } else {
+        selectedElement.style.removeProperty('position');
+      }
+      
+      // Apply position coordinates
+      if (posTop.value !== '') {
+        selectedElement.style.top = `${posTop.value}${posTopUnit.value}`;
+      } else {
+        selectedElement.style.removeProperty('top');
+      }
+      
+      if (posLeft.value !== '') {
+        selectedElement.style.left = `${posLeft.value}${posLeftUnit.value}`;
+      } else {
+        selectedElement.style.removeProperty('left');
+      }
+      
+      if (posRight.value !== '') {
+        selectedElement.style.right = `${posRight.value}${posRightUnit.value}`;
+      } else {
+        selectedElement.style.removeProperty('right');
+      }
+      
+      if (posBottom.value !== '') {
+        selectedElement.style.bottom = `${posBottom.value}${posBottomUnit.value}`;
+      } else {
+        selectedElement.style.removeProperty('bottom');
+      }
+      
+      // Apply transform
+      const x = parseFloat(transformX.value) || 0;
+      const y = parseFloat(transformY.value) || 0;
+      const rotate = parseFloat(transformRotate.value) || 0;
+      const scale = parseFloat(transformScale.value) || 1;
+      
+      let transformValue = '';
+      if (x !== 0 || y !== 0) {
+        transformValue += `translate(${x}px, ${y}px) `;
+      }
+      if (rotate !== 0) {
+        transformValue += `rotate(${rotate}deg) `;
+      }
+      if (scale !== 1) {
+        transformValue += `scale(${scale})`;
+      }
+      
+      if (transformValue) {
+        selectedElement.style.transform = transformValue.trim();
+      } else {
+        selectedElement.style.removeProperty('transform');
+      }
+      
+      statusText.textContent = '位置を適用しました';
+    }
+    
+    function resetPosition() {
+      if (!selectedElement) return;
+      
+      selectedElement.style.removeProperty('position');
+      selectedElement.style.removeProperty('top');
+      selectedElement.style.removeProperty('left');
+      selectedElement.style.removeProperty('right');
+      selectedElement.style.removeProperty('bottom');
+      selectedElement.style.removeProperty('transform');
+      
+      updatePositionPanel(selectedElement);
+      statusText.textContent = '位置をリセットしました';
+    }
     
     // ===== Document Interaction =====
     function attachDocumentListeners(doc) {
@@ -1283,7 +1306,6 @@
       const doc = iframe.contentDocument;
       if (!doc) return;
       
-      // Clean up editor markers
       doc.querySelectorAll('[data-editor-selected]').forEach(el => {
         el.removeAttribute('data-editor-selected');
       });
@@ -1291,15 +1313,12 @@
         el.removeAttribute('data-editor-hover');
       });
       
-      // Remove editor styles
       const editorStyle = doc.getElementById('ultimate-editor-styles');
       if (editorStyle) editorStyle.remove();
       
-      // Build final HTML
       const doctype = '<!doctype html>\n';
       let html = doctype + doc.documentElement.outerHTML;
       
-      // Download
       const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1310,13 +1329,12 @@
       a.remove();
       URL.revokeObjectURL(url);
       
-      // Restore editor UI
       ensureEditorStyles(doc);
       if (selectedElement) {
         selectedElement.setAttribute('data-editor-selected', '1');
       }
       
-      statusText.innerHTML = '<span class="ok">エクスポート完了！</span>';
+      statusText.innerHTML = '<span class="ok">エクスポート完了!</span>';
       setTimeout(() => {
         statusText.textContent = '編集中...';
       }, 2000);
@@ -1335,7 +1353,6 @@
       iframe.srcdoc = originalHtml;
       exportBtn.disabled = false;
       
-      // Detect background color
       const detected = detectBackgroundColor(originalHtml);
       if (detected) {
         bgR.value = detected.R;
@@ -1348,7 +1365,6 @@
         syncBackgroundUI();
       }
       
-      // Setup iframe
       iframe.addEventListener('load', () => {
         const doc = iframe.contentDocument;
         attachDocumentListeners(doc);
@@ -1433,7 +1449,7 @@
     animReset.addEventListener('click', () => {
       if (!selectedElement) return;
       selectedElement.removeAttribute('data-ae');
-      ['--ae-dur', '--ae-delay', '--ae-ease', '--ae-iter', '--ae-fill', '--ae-state'].forEach(prop => {
+      ['--ae-dur', '--ae-delay', '--ae-ease', '--ae-iter', '--ae-fill'].forEach(prop => {
         selectedElement.style.removeProperty(prop);
       });
       updateAnimationPanel(selectedElement);
@@ -1445,6 +1461,17 @@
       statusSelection.textContent = '選択: なし';
     });
     
+    // Position controls
+    transformRotate.addEventListener('input', syncPositionReadouts);
+    transformScale.addEventListener('input', syncPositionReadouts);
+    
+    applyPositionBtn.addEventListener('click', applyPosition);
+    resetPositionBtn.addEventListener('click', resetPosition);
+    clearPositionBtn.addEventListener('click', () => {
+      clearAllSelections();
+      statusSelection.textContent = '選択: なし';
+    });
+    
     // Export
     exportBtn.addEventListener('click', exportHtml);
     
@@ -1452,6 +1479,7 @@
     syncBackgroundUI();
     setGlowUI(false);
     syncAnimationReadouts();
+    syncPositionReadouts();
     
     // Load default preview
     iframe.srcdoc = `<!doctype html>
@@ -1489,8 +1517,9 @@
 </head>
 <body>
   <div class="welcome">
-    <h1>HTML Visual Editor Ultimate</h1>
+    <h1>📐 HTML Visual Editor Ultimate</h1>
     <p>HTMLファイルを読み込んで編集を開始してください</p>
+    <p style="font-size: 0.9em; opacity: 0.8; margin-top: 1em;">位置調整機能を追加しました!</p>
   </div>
 </body>
 </html>`;
